@@ -113,11 +113,45 @@ function setupForms() {
     const success = form.querySelector("[data-form-success]");
     form.addEventListener("submit", (event) => {
       event.preventDefault();
-      if (success) {
-        success.hidden = false;
-        success.textContent = "Thanks! A Buildana consultant will reach out within one business day.";
+      const endpoint = form.dataset.apiEndpoint;
+
+      if (!endpoint) {
+        if (success) {
+          success.hidden = false;
+          success.textContent = "Thanks! A Buildana consultant will reach out within one business day.";
+        }
+        form.reset();
+        return;
       }
-      form.reset();
+
+      const formData = new FormData(form);
+      const payload = Object.fromEntries(formData.entries());
+
+      fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.error || "Unable to send message right now.");
+          }
+          return response.json();
+        })
+        .then(() => {
+          if (success) {
+            success.hidden = false;
+            success.textContent = "Thanks! Your message has been sent.";
+          }
+          form.reset();
+        })
+        .catch((error) => {
+          if (success) {
+            success.hidden = false;
+            success.textContent = error.message;
+          }
+        });
     });
   });
 }
@@ -181,6 +215,20 @@ function registerServiceWorker() {
   });
 }
 
+function sendAnalyticsPageView() {
+  if (!window.fetch) return;
+  fetch("/api/analytics/pageview", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      path: window.location.pathname,
+      referrer: document.referrer || null,
+    }),
+  }).catch(() => {
+    // Analytics is best-effort.
+  });
+}
+
 if (typeof document !== "undefined") {
   document.addEventListener("DOMContentLoaded", () => {
     setActiveNav();
@@ -190,5 +238,6 @@ if (typeof document !== "undefined") {
     setupDynamicContent();
     setupExitIntent();
     registerServiceWorker();
+    sendAnalyticsPageView();
   });
 }
