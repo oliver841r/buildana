@@ -4,6 +4,7 @@ import { calculateEstimate } from '../lib/engine/calculate';
 const settings = {
   specCostPerSqm: { STANDARD: 1000, MID: 2000, PREMIUM: 3000 },
   siteMultiplier: { FLAT: 1, MODERATE: 1.1, COMPLEX: 1.2 },
+  featureCosts: { bedroomCost: 1000, bathroomCost: 2000, garageSpaceCost: 500, doubleStoreyMultiplier: 1.1 },
   categoryPercents: {
     'Slab & Structure': 0.1,
     Framing: 0.1,
@@ -69,11 +70,38 @@ describe('calculateEstimate', () => {
         siteComplexity: 'FLAT',
         addOns: [{ name: 'HIGH_CEILINGS', multiplier: 1.1 }, { name: 'POOL', flatCost: 5000 }],
         prelimPercent: 0,
-        marginPercent: 0
+        marginPercent: 0,
+        bedroomCount: 0,
+        bathroomCount: 0,
+        garageSpaces: 0,
+        storeys: 1
       },
       settings as any
     );
     expect(res.addOnsAdjusted).toBe(115000);
+  });
+
+  it('applies room adjustments and storey multiplier', () => {
+    const res = calculateEstimate(
+      {
+        projectName: 'A',
+        buildType: 'CUSTOM_HOME',
+        totalSqm: 100,
+        specLevel: 'STANDARD',
+        siteComplexity: 'FLAT',
+        addOns: [],
+        prelimPercent: 0,
+        marginPercent: 0,
+        bedroomCount: 3,
+        bathroomCount: 2,
+        garageSpaces: 1,
+        storeys: 2
+      },
+      settings as any
+    );
+
+    expect(res.roomConfiguration.roomAdjustment).toBe(8500);
+    expect(res.addOnsAdjusted).toBe(118500);
   });
 
   it('computes totals accurately', () => {
@@ -86,7 +114,11 @@ describe('calculateEstimate', () => {
         siteComplexity: 'FLAT',
         addOns: [],
         prelimPercent: 0.1,
-        marginPercent: 0.2
+        marginPercent: 0.2,
+        bedroomCount: 0,
+        bathroomCount: 0,
+        garageSpaces: 0,
+        storeys: 1
       },
       settings as any
     );

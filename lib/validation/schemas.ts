@@ -17,7 +17,11 @@ export const projectSchema = z.object({
   siteComplexity: z.enum(['FLAT', 'MODERATE', 'COMPLEX']),
   addOns: z.array(addOnSchema),
   prelimPercent: z.number().min(0).max(1),
-  marginPercent: z.number().min(0).max(1)
+  marginPercent: z.number().min(0).max(1),
+  bedroomCount: z.number().int().min(1).max(12).default(4),
+  bathroomCount: z.number().int().min(1).max(8).default(2),
+  garageSpaces: z.number().int().min(0).max(6).default(2),
+  storeys: z.number().int().min(1).max(3).default(1)
 });
 
 export const settingsSchema = z.object({
@@ -30,6 +34,12 @@ export const settingsSchema = z.object({
     FLAT: z.number().positive(),
     MODERATE: z.number().positive(),
     COMPLEX: z.number().positive()
+  }),
+  featureCosts: z.object({
+    bedroomCost: z.number().nonnegative(),
+    bathroomCost: z.number().nonnegative(),
+    garageSpaceCost: z.number().nonnegative(),
+    doubleStoreyMultiplier: z.number().positive()
   }),
   categoryPercents: z.object({
     'Slab & Structure': z.number().nonnegative(),

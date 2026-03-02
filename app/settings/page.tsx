@@ -11,6 +11,8 @@ import { settingsSchema } from '@/lib/validation/schemas';
 import { updateSettings } from '@/app/actions/projectActions';
 import { CATEGORY_NAMES } from '@/lib/engine/normalize';
 
+const labelClass = 'mb-1 block text-sm font-medium text-zinc-700';
+
 export default function SettingsPage() {
   const { data } = useSession();
   const [pending, startTransition] = useTransition();
@@ -30,40 +32,80 @@ export default function SettingsPage() {
   if (!loaded) return <div className="p-6">Loading settings...</div>;
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
-      <h1 className="mb-4 text-2xl font-bold">Settings</h1>
-      <Card>
+    <div className="mx-auto max-w-6xl space-y-4 p-6">
+      <div>
+        <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Buildana Configuration</p>
+        <h1 className="text-3xl font-semibold">Cost Engine Settings</h1>
+      </div>
+
+      <Card className="bg-gradient-to-br from-white to-amber-50/50 p-6">
         <form
-          className="space-y-3"
+          className="space-y-6"
           onSubmit={form.handleSubmit((values) => {
             startTransition(async () => {
-              await updateSettings({
-                specCostPerSqm: values.specCostPerSqm,
-                siteMultiplier: values.siteMultiplier,
-                categoryPercents: { raw: values.categoryPercents, normalized: values.categoryPercents }
-              });
+              await updateSettings(values);
             });
           })}
         >
-          <p className="font-semibold">Spec $/sqm</p>
-          {['STANDARD', 'MID', 'PREMIUM'].map((key) => (
-            <Input key={key} type="number" step="1" {...form.register(`specCostPerSqm.${key}`, { valueAsNumber: true })} />
-          ))}
-
-          <p className="font-semibold">Site Multipliers</p>
-          {['FLAT', 'MODERATE', 'COMPLEX'].map((key) => (
-            <Input key={key} type="number" step="0.01" {...form.register(`siteMultiplier.${key}`, { valueAsNumber: true })} />
-          ))}
-
-          <p className="font-semibold">Category Percentages</p>
-          {CATEGORY_NAMES.map((name) => (
-            <div key={name}>
-              <label>{name}</label>
-              <Input type="number" step="0.01" {...form.register(`categoryPercents.${name}`, { valueAsNumber: true })} />
+          <section>
+            <h2 className="text-lg font-semibold">Spec Rates ($/sqm)</h2>
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              {['STANDARD', 'MID', 'PREMIUM'].map((key) => (
+                <div key={key}>
+                  <label className={labelClass}>{key}</label>
+                  <Input type="number" step="1" {...form.register(`specCostPerSqm.${key}`, { valueAsNumber: true })} />
+                </div>
+              ))}
             </div>
-          ))}
+          </section>
 
-          <Button disabled={pending}>Save Settings</Button>
+          <section>
+            <h2 className="text-lg font-semibold">Site Complexity Multipliers</h2>
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              {['FLAT', 'MODERATE', 'COMPLEX'].map((key) => (
+                <div key={key}>
+                  <label className={labelClass}>{key}</label>
+                  <Input type="number" step="0.01" {...form.register(`siteMultiplier.${key}`, { valueAsNumber: true })} />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold">Room & Storey Cost Drivers</h2>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div>
+                <label className={labelClass}>Bedroom Cost</label>
+                <Input type="number" step="100" {...form.register('featureCosts.bedroomCost', { valueAsNumber: true })} />
+              </div>
+              <div>
+                <label className={labelClass}>Bathroom Cost</label>
+                <Input type="number" step="100" {...form.register('featureCosts.bathroomCost', { valueAsNumber: true })} />
+              </div>
+              <div>
+                <label className={labelClass}>Garage Space Cost</label>
+                <Input type="number" step="100" {...form.register('featureCosts.garageSpaceCost', { valueAsNumber: true })} />
+              </div>
+              <div>
+                <label className={labelClass}>Double Storey Multiplier</label>
+                <Input type="number" step="0.01" {...form.register('featureCosts.doubleStoreyMultiplier', { valueAsNumber: true })} />
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold">Category Percentages</h2>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              {CATEGORY_NAMES.map((name) => (
+                <div key={name}>
+                  <label className={labelClass}>{name}</label>
+                  <Input type="number" step="0.01" {...form.register(`categoryPercents.${name}`, { valueAsNumber: true })} />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <Button disabled={pending}>{pending ? 'Saving...' : 'Save Settings'}</Button>
         </form>
       </Card>
     </div>

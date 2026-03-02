@@ -15,8 +15,11 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6">
-      <Card className="w-full max-w-md space-y-4">
-        <h1 className="text-2xl font-bold">Buildana Cost Engine</h1>
+      <Card className="w-full max-w-md space-y-5 bg-gradient-to-br from-white via-white to-amber-50/60 p-6">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Welcome</p>
+          <h1 className="text-2xl font-semibold">Buildana Cost Engine</h1>
+        </div>
         <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
         <Input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="Password" />
         {error ? <p className="text-sm text-red-600">{error}</p> : null}

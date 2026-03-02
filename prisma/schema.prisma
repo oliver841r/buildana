@@ -43,6 +43,7 @@ model Settings {
   id               String   @id @default("singleton")
   specCostPerSqm   Json
   siteMultiplier   Json
+  featureCosts     Json
   addOnDefaults    Json
   categoryPercents Json
   createdAt        DateTime @default(now())

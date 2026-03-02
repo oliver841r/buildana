@@ -17,7 +17,8 @@ export async function POST(req: Request) {
   const estimate = calculateEstimate(parsed.data, {
     specCostPerSqm: settings.specCostPerSqm as any,
     siteMultiplier: settings.siteMultiplier as any,
-    categoryPercents: (settings.categoryPercents as any).raw
+    categoryPercents: (settings.categoryPercents as any).raw,
+    featureCosts: settings.featureCosts as any
   });
 
   return NextResponse.json(estimate);

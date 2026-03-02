@@ -21,6 +21,8 @@ const addOnOptions: AddOnInput[] = [
   { name: 'LANDSCAPING_PREMIUM', flatCost: 30000 }
 ];
 
+const sectionTitle = 'text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500';
+
 export function ProjectForm({
   initial,
   onSave,
@@ -57,53 +59,87 @@ export function ProjectForm({
   });
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <form onSubmit={submit} className="grid gap-3 md:grid-cols-2">
+    <div className="space-y-6">
+      <Card className="bg-gradient-to-br from-white via-white to-amber-50/60 p-6">
+        <form onSubmit={submit} className="space-y-6">
           <div>
-            <label>Project Name</label>
-            <Input {...form.register('projectName')} />
+            <p className={sectionTitle}>Project Basics</p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium">Project Name</label>
+                <Input {...form.register('projectName')} placeholder="e.g. Paddington Residence" />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Total sqm</label>
+                <Input type="number" step="0.01" {...form.register('totalSqm', { valueAsNumber: true })} />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Build Type</label>
+                <Select {...form.register('buildType')}>
+                  <option value="DUPLEX">Duplex</option>
+                  <option value="CUSTOM_HOME">Custom Home</option>
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Spec Level</label>
+                <Select {...form.register('specLevel')}>
+                  <option value="STANDARD">Standard</option>
+                  <option value="MID">Mid</option>
+                  <option value="PREMIUM">Premium</option>
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Site Complexity</label>
+                <Select {...form.register('siteComplexity')}>
+                  <option value="FLAT">Flat</option>
+                  <option value="MODERATE">Moderate</option>
+                  <option value="COMPLEX">Complex</option>
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Storeys</label>
+                <Input type="number" {...form.register('storeys', { valueAsNumber: true })} />
+              </div>
+            </div>
           </div>
+
           <div>
-            <label>Total sqm</label>
-            <Input type="number" step="0.01" {...form.register('totalSqm', { valueAsNumber: true })} />
+            <p className={sectionTitle}>Room Configuration</p>
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium">Bedrooms</label>
+                <Input type="number" {...form.register('bedroomCount', { valueAsNumber: true })} />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Bathrooms</label>
+                <Input type="number" {...form.register('bathroomCount', { valueAsNumber: true })} />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Garage Spaces</label>
+                <Input type="number" {...form.register('garageSpaces', { valueAsNumber: true })} />
+              </div>
+            </div>
           </div>
+
           <div>
-            <label>Build Type</label>
-            <Select {...form.register('buildType')}>
-              <option value="DUPLEX">Duplex</option>
-              <option value="CUSTOM_HOME">Custom Home</option>
-            </Select>
+            <p className={sectionTitle}>Commercial Controls</p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium">Prelim %</label>
+                <Input type="number" step="0.01" {...form.register('prelimPercent', { valueAsNumber: true })} />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Margin %</label>
+                <Input type="number" step="0.01" {...form.register('marginPercent', { valueAsNumber: true })} />
+              </div>
+            </div>
           </div>
+
           <div>
-            <label>Spec Level</label>
-            <Select {...form.register('specLevel')}>
-              <option value="STANDARD">Standard</option>
-              <option value="MID">Mid</option>
-              <option value="PREMIUM">Premium</option>
-            </Select>
-          </div>
-          <div>
-            <label>Site Complexity</label>
-            <Select {...form.register('siteComplexity')}>
-              <option value="FLAT">Flat</option>
-              <option value="MODERATE">Moderate</option>
-              <option value="COMPLEX">Complex</option>
-            </Select>
-          </div>
-          <div>
-            <label>Prelim %</label>
-            <Input type="number" step="0.01" {...form.register('prelimPercent', { valueAsNumber: true })} />
-          </div>
-          <div>
-            <label>Margin %</label>
-            <Input type="number" step="0.01" {...form.register('marginPercent', { valueAsNumber: true })} />
-          </div>
-          <div className="md:col-span-2">
-            <label>Add-ons</label>
-            <div className="mt-2 grid gap-2 md:grid-cols-2">
+            <p className={sectionTitle}>Add-on Selections</p>
+            <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
               {addOnOptions.map((addOn) => (
-                <label key={addOn.name} className="flex items-center gap-2 rounded border p-2">
+                <label key={addOn.name} className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white p-3 shadow-sm">
                   <input
                     type="checkbox"
                     onChange={(e) => {
@@ -118,14 +154,29 @@ export function ProjectForm({
                       }
                     }}
                   />
-                  {addOn.name}
+                  <span className="text-sm font-medium">{addOn.name.replaceAll('_', ' ')}</span>
                 </label>
               ))}
             </div>
           </div>
-          <div className="md:col-span-2 flex gap-2">
+
+          <div className="flex flex-wrap gap-2">
             <Button type="submit" disabled={pending}>Save Project</Button>
-            {onExport ? <Button type="button" onClick={async () => { const b64 = await onExport(); const a = document.createElement('a'); a.href = `data:application/pdf;base64,${b64}`; a.download = `${form.getValues('projectName') || 'estimate'}.pdf`; a.click(); }}>Export PDF</Button> : null}
+            {onExport ? (
+              <Button
+                type="button"
+                className="bg-amber-500 text-zinc-950 hover:bg-amber-400"
+                onClick={async () => {
+                  const b64 = await onExport();
+                  const a = document.createElement('a');
+                  a.href = `data:application/pdf;base64,${b64}`;
+                  a.download = `${form.getValues('projectName') || 'estimate'}.pdf`;
+                  a.click();
+                }}
+              >
+                Export Branded PDF
+              </Button>
+            ) : null}
           </div>
         </form>
       </Card>

@@ -22,6 +22,13 @@ const categoryRaw = {
 const sum = Object.values(categoryRaw).reduce((acc, val) => acc + val, 0);
 const normalized = Object.fromEntries(Object.entries(categoryRaw).map(([k, v]) => [k, v / sum]));
 
+const featureCosts = {
+  bedroomCost: 18000,
+  bathroomCost: 24000,
+  garageSpaceCost: 12000,
+  doubleStoreyMultiplier: 1.12
+};
+
 async function main() {
   const passwordHash = await bcrypt.hash('Buildana123!', 10);
 
@@ -40,6 +47,7 @@ async function main() {
     update: {
       specCostPerSqm: { STANDARD: 1850, MID: 2400, PREMIUM: 3200 },
       siteMultiplier: { FLAT: 1, MODERATE: 1.08, COMPLEX: 1.18 },
+      featureCosts,
       addOnDefaults: {
         POOL: { flatCost: 65000 },
         HIGH_CEILINGS: { multiplier: 1.05 },
@@ -53,6 +61,7 @@ async function main() {
       id: 'singleton',
       specCostPerSqm: { STANDARD: 1850, MID: 2400, PREMIUM: 3200 },
       siteMultiplier: { FLAT: 1, MODERATE: 1.08, COMPLEX: 1.18 },
+      featureCosts,
       addOnDefaults: {
         POOL: { flatCost: 65000 },
         HIGH_CEILINGS: { multiplier: 1.05 },

@@ -9,6 +9,7 @@ export async function GET() {
   return NextResponse.json({
     specCostPerSqm: settings.specCostPerSqm,
     siteMultiplier: settings.siteMultiplier,
+    featureCosts: settings.featureCosts ?? { bedroomCost: 18000, bathroomCost: 24000, garageSpaceCost: 12000, doubleStoreyMultiplier: 1.12 },
     categoryPercents: (settings.categoryPercents as any).raw
   });
 }

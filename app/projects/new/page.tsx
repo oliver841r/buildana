@@ -7,7 +7,8 @@ export default async function NewProjectPage() {
 
   return (
     <div className="mx-auto max-w-6xl p-6">
-      <h1 className="mb-4 text-2xl font-bold">Create Project</h1>
+      <p className="mb-1 text-xs uppercase tracking-[0.2em] text-zinc-500">Estimator Workspace</p>
+      <h1 className="mb-4 text-3xl font-semibold">Create Project</h1>
       <ProjectForm
         initial={{
           projectName: '',
@@ -17,7 +18,11 @@ export default async function NewProjectPage() {
           siteComplexity: 'FLAT',
           addOns: [],
           prelimPercent: 0.1,
-          marginPercent: 0.2
+          marginPercent: 0.2,
+          bedroomCount: 4,
+          bathroomCount: 2,
+          garageSpaces: 2,
+          storeys: 1
         }}
         onSave={async (data) => {
           'use server';

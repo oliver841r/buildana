@@ -16,7 +16,7 @@ export function BreakdownTable({ rows }: Props) {
   const safeRows = rows ?? [];
 
   return (
-    <div className="rounded-xl border bg-white">
+    <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_8px_30px_rgba(2,6,23,0.06)]">
       <Table>
         <THead>
           <Tr>
@@ -27,14 +27,20 @@ export function BreakdownTable({ rows }: Props) {
           </Tr>
         </THead>
         <TBody>
-          {safeRows.map((row) => (
-            <Tr key={row.categoryName}>
-              <Td>{row.categoryName}</Td>
-              <Td>{(row.percentRaw * 100).toFixed(2)}%</Td>
-              <Td>{(row.percentNormalized * 100).toFixed(2)}%</Td>
-              <Td>{formatAud(row.amount)}</Td>
+          {safeRows.length === 0 ? (
+            <Tr>
+              <Td colSpan={4} className="text-center text-zinc-500">No breakdown available yet.</Td>
             </Tr>
-          ))}
+          ) : (
+            safeRows.map((row) => (
+              <Tr key={row.categoryName}>
+                <Td>{row.categoryName}</Td>
+                <Td>{(row.percentRaw * 100).toFixed(2)}%</Td>
+                <Td>{(row.percentNormalized * 100).toFixed(2)}%</Td>
+                <Td className="font-medium">{formatAud(row.amount)}</Td>
+              </Tr>
+            ))
+          )}
         </TBody>
       </Table>
     </div>

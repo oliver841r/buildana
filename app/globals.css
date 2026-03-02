@@ -3,5 +3,10 @@
 @tailwind utilities;
 
 body {
-  @apply bg-zinc-100 text-zinc-900;
+  @apply bg-zinc-100 text-zinc-900 antialiased;
+}
+
+.bg-grid {
+  background-image: radial-gradient(circle at 1px 1px, rgba(24, 24, 27, 0.06) 1px, transparent 0);
+  background-size: 28px 28px;
 }

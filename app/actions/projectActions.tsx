@@ -31,7 +31,8 @@ export async function createProject(data: unknown) {
   const estimate = calculateEstimate(parsed, {
     specCostPerSqm: settings.specCostPerSqm as any,
     siteMultiplier: settings.siteMultiplier as any,
-    categoryPercents: (settings.categoryPercents as any).raw
+    categoryPercents: (settings.categoryPercents as any).raw,
+    featureCosts: settings.featureCosts as any
   });
 
   const project = await prisma.project.create({
@@ -62,7 +63,8 @@ export async function updateProject(id: string, data: unknown) {
   const estimate = calculateEstimate(parsed, {
     specCostPerSqm: settings.specCostPerSqm as any,
     siteMultiplier: settings.siteMultiplier as any,
-    categoryPercents: (settings.categoryPercents as any).raw
+    categoryPercents: (settings.categoryPercents as any).raw,
+    featureCosts: settings.featureCosts as any
   });
 
   await prisma.$transaction([
@@ -107,6 +109,7 @@ export async function updateSettings(data: unknown) {
     data: {
       specCostPerSqm: parsed.specCostPerSqm,
       siteMultiplier: parsed.siteMultiplier,
+      featureCosts: parsed.featureCosts,
       categoryPercents: { raw: parsed.categoryPercents, normalized: parsed.categoryPercents },
       addOnDefaults: existing?.addOnDefaults ?? {}
     }
