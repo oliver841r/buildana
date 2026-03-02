@@ -8,7 +8,13 @@ export type BreakdownRow = {
   amount: number;
 };
 
-export function BreakdownTable({ rows }: { rows: BreakdownRow[] }) {
+type Props = {
+  rows?: BreakdownRow[];
+};
+
+export function BreakdownTable({ rows }: Props) {
+  const safeRows = rows ?? [];
+
   return (
     <div className="rounded-xl border bg-white">
       <Table>
@@ -21,7 +27,7 @@ export function BreakdownTable({ rows }: { rows: BreakdownRow[] }) {
           </Tr>
         </THead>
         <TBody>
-          {rows.map((row) => (
+          {safeRows.map((row) => (
             <Tr key={row.categoryName}>
               <Td>{row.categoryName}</Td>
               <Td>{(row.percentRaw * 100).toFixed(2)}%</Td>

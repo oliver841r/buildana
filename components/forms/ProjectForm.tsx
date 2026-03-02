@@ -135,7 +135,7 @@ export function ProjectForm({
       {calc ? (
         <>
           <TotalsCards total={calc.total} subtotal={calc.subtotal} prelim={calc.prelimCost} margin={calc.margin} />
-          <BreakdownTable rows={calc.categoryBreakdown} />
+          <BreakdownTable rows={calc.categoryBreakdown ?? []} />
         </>
       ) : null}
     </div>
