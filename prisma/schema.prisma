@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  ESTIMATOR
+  VIEWER
+}
+
+enum BuildType {
+  DUPLEX
+  CUSTOM_HOME
+}
+
+enum SpecLevel {
+  STANDARD
+  MID
+  PREMIUM
+}
+
+enum SiteComplexity {
+  FLAT
+  MODERATE
+  COMPLEX
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(VIEWER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Settings {
+  id               String   @id @default("singleton")
+  specCostPerSqm   Json
+  siteMultiplier   Json
+  addOnDefaults    Json
+  categoryPercents Json
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Project {
+  id             String       @id @default(cuid())
+  name           String
+  buildType      BuildType
+  totalSqm       Float
+  specLevel      SpecLevel
+  siteComplexity SiteComplexity
+  prelimPercent  Float
+  marginPercent  Float
+  addOns         Json
+  totals         Json
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  breakdowns     ProjectCategoryBreakdown[]
+}
+
+model ProjectCategoryBreakdown {
+  id                String  @id @default(cuid())
+  projectId         String
+  categoryName      String
+  percentRaw        Float
+  percentNormalized Float
+  amount            Float
+  project           Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
