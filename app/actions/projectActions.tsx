@@ -21,6 +21,7 @@ export async function listProjects() {
 
 export async function getProject(id: string) {
   await requireAuth();
+  if (!id) return null;
   return prisma.project.findUnique({ where: { id }, include: { breakdowns: true } });
 }
 
@@ -58,6 +59,7 @@ export async function createProject(data: unknown) {
 
 export async function updateProject(id: string, data: unknown) {
   await requireAuth(['ADMIN', 'ESTIMATOR']);
+  if (!id) throw new Error('Project ID is required');
   const parsed = projectSchema.parse(data);
   const settings = await loadSettings();
   const estimate = calculateEstimate(parsed, {
@@ -93,6 +95,7 @@ export async function updateProject(id: string, data: unknown) {
 
 export async function exportPdf(id: string) {
   await requireAuth();
+  if (!id) throw new Error('Project ID is required');
   const project = await prisma.project.findUnique({ where: { id } });
   if (!project) throw new Error('Project not found');
   const estimate = project.totals as any;

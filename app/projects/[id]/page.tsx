@@ -3,9 +3,16 @@ import { exportPdf, getProject, updateProject } from '@/app/actions/projectActio
 import { ProjectForm } from '@/components/forms/ProjectForm';
 import { requireAuth } from '@/lib/auth/options';
 
-export default async function ProjectPage({ params }: { params: { id: string } }) {
+type ProjectPageProps = {
+  params: Promise<{ id?: string }>;
+};
+
+export default async function ProjectPage({ params }: ProjectPageProps) {
   await requireAuth();
-  const project = await getProject(params.id);
+  const { id } = await params;
+  if (!id) notFound();
+
+  const project = await getProject(id);
   if (!project) notFound();
 
   return (
