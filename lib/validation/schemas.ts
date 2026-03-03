@@ -1,8 +1,10 @@
 import { z } from 'zod';
 
-const addOnSchema = z
+export const addOnNameSchema = z.enum(['POOL', 'HIGH_CEILINGS', 'UPGRADED_WINDOWS', 'SMART_HOME', 'LANDSCAPING_PREMIUM']);
+
+export const addOnSchema = z
   .object({
-    name: z.enum(['POOL', 'HIGH_CEILINGS', 'UPGRADED_WINDOWS', 'SMART_HOME', 'LANDSCAPING_PREMIUM']),
+    name: addOnNameSchema,
     flatCost: z.number().nonnegative().optional(),
     multiplier: z.number().positive().optional()
   })
@@ -26,6 +28,12 @@ export const projectSchema = z.object({
   notes: z.string().optional().nullable()
 });
 
+export const addOnDefaultSchema = z.object({
+  name: addOnNameSchema,
+  type: z.enum(['flat', 'multiplier']),
+  value: z.number().positive()
+});
+
 export const settingsSchema = z.object({
   specCostPerSqm: z.object({
     STANDARD: z.number().positive(),
@@ -45,13 +53,7 @@ export const settingsSchema = z.object({
       '3': z.number().positive()
     })
   }),
-  addOnDefaults: z.array(
-    z.object({
-      name: z.string().min(2),
-      type: z.enum(['flat', 'multiplier']),
-      value: z.number().positive()
-    })
-  ),
+  addOnDefaults: z.array(addOnDefaultSchema),
   categoryPercents: z.object({
     'Slab & Structure': z.number().nonnegative(),
     Framing: z.number().nonnegative(),
@@ -70,3 +72,5 @@ export const settingsSchema = z.object({
 });
 
 export type ProjectInput = z.infer<typeof projectSchema>;
+export type SettingsInput = z.infer<typeof settingsSchema>;
+export type AddOnDefaultInput = z.infer<typeof addOnDefaultSchema>;

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { projectSchema, type ProjectInput } from '@/lib/validation/schemas';
+import { projectSchema, type AddOnDefaultInput, type ProjectInput } from '@/lib/validation/schemas';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,10 +11,11 @@ import { Select } from '@/components/ui/select';
 import { TotalsCards } from '@/components/estimate/TotalsCards';
 import { BreakdownTable } from '@/components/estimate/BreakdownTable';
 import { WarningsBanner } from '@/components/estimate/WarningsBanner';
+import { EstimateOutput } from '@/lib/engine/calculate';
 
 const sectionTitle = 'text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500';
 
-type AddOnDefault = { name: string; type: 'flat' | 'multiplier'; value: number };
+type CalcState = EstimateOutput | { error: string } | null;
 
 export function ProjectForm({
   initial,
@@ -25,40 +26,54 @@ export function ProjectForm({
   onSave: (data: ProjectInput) => Promise<void>;
   onExport?: (mode?: 'CLIENT' | 'INTERNAL') => Promise<string>;
 }) {
-  const [calc, setCalc] = useState<any>();
-  const [compare, setCompare] = useState<any>();
+  const [calc, setCalc] = useState<CalcState>(null);
+  const [compare, setCompare] = useState<{ spec: ProjectInput['specLevel']; estimate: EstimateOutput } | null>(null);
   const [pending, startTransition] = useTransition();
-  const [addOnDefaults, setAddOnDefaults] = useState<AddOnDefault[]>([]);
+  const [addOnDefaults, setAddOnDefaults] = useState<AddOnDefaultInput[]>([]);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
   const form = useForm<ProjectInput>({ resolver: zodResolver(projectSchema), defaultValues: initial });
 
   useEffect(() => {
-    fetch('/api/settings').then((r) => r.json()).then((json) => setAddOnDefaults(json.addOnDefaults ?? []));
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((json: { addOnDefaults: AddOnDefaultInput[] }) => setAddOnDefaults(json.addOnDefaults ?? []))
+      .catch(() => setAddOnDefaults([]));
   }, []);
 
   useEffect(() => {
     const subscription = form.watch((values) => {
       if (!values.projectName) return;
-      fetch('/api/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...values, addOns: values.addOns ?? [] })
-      })
-        .then((res) => res.json())
-        .then((res) => setCalc(res))
-        .catch(() => setCalc(undefined));
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(async () => {
+        try {
+          const response = await fetch('/api/calculate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...values, addOns: values.addOns ?? [] })
+          });
+          const result = (await response.json()) as EstimateOutput | { error: string };
+          setCalc(result);
 
-      const altSpec = values.specLevel === 'PREMIUM' ? 'ULTRA' : 'PREMIUM';
-      fetch('/api/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...values, specLevel: altSpec, addOns: values.addOns ?? [] })
-      })
-        .then((res) => res.json())
-        .then((res) => setCompare({ spec: altSpec, estimate: res }))
-        .catch(() => setCompare(undefined));
+          const altSpec: ProjectInput['specLevel'] = values.specLevel === 'PREMIUM' ? 'ULTRA' : 'PREMIUM';
+          const compareResponse = await fetch('/api/calculate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...values, specLevel: altSpec, addOns: values.addOns ?? [] })
+          });
+          const compareResult = (await compareResponse.json()) as EstimateOutput;
+          if ('total' in compareResult) setCompare({ spec: altSpec, estimate: compareResult });
+        } catch {
+          setCalc({ error: 'Unable to calculate estimate right now.' });
+          setCompare(null);
+        }
+      }, 250);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      subscription.unsubscribe();
+    };
   }, [form]);
 
   const submit = form.handleSubmit((values) => {
@@ -68,6 +83,9 @@ export function ProjectForm({
   });
 
   const selectedAddOns = form.watch('addOns') ?? [];
+
+  const estimate = calc && 'total' in calc ? calc : null;
+  const calcError = calc && 'error' in calc ? calc.error : null;
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
@@ -108,7 +126,10 @@ export function ProjectForm({
                     onChange={(e) => {
                       const current = form.getValues('addOns') ?? [];
                       if (e.target.checked) {
-                        form.setValue('addOns', [...current, { name: addOn.name as any, ...(addOn.type === 'flat' ? { flatCost: addOn.value } : { multiplier: addOn.value }) }]);
+                        form.setValue('addOns', [
+                          ...current,
+                          { name: addOn.name, ...(addOn.type === 'flat' ? { flatCost: addOn.value } : { multiplier: addOn.value }) }
+                        ]);
                       } else {
                         form.setValue('addOns', current.filter((x) => x.name !== addOn.name));
                       }
@@ -139,19 +160,20 @@ export function ProjectForm({
       </Card>
 
       <div className="space-y-4">
-        {calc?.warnings ? <WarningsBanner warnings={calc.warnings} /> : null}
-        {calc ? (
+        {calcError ? <WarningsBanner warnings={[calcError]} /> : null}
+        {estimate?.warnings ? <WarningsBanner warnings={estimate.warnings} /> : null}
+        {estimate ? (
           <>
-            <TotalsCards total={calc.total} subtotal={calc.subtotal} prelim={calc.prelimCost} margin={calc.margin} contingency={calc.contingencyCost} />
-            <BreakdownTable rows={calc.categoryBreakdown ?? []} />
+            <TotalsCards total={estimate.total} subtotal={estimate.subtotal} prelim={estimate.prelimCost} margin={estimate.margin} contingency={estimate.contingencyCost} />
+            <BreakdownTable rows={estimate.categoryBreakdown ?? []} />
             {compare?.estimate ? (
               <Card>
                 <p className="mb-2 text-sm font-semibold">Compare Specs: {form.getValues('specLevel')} vs {compare.spec}</p>
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>Current Total: <span className="font-semibold">${Math.round(calc.total).toLocaleString('en-AU')}</span></div>
+                  <div>Current Total: <span className="font-semibold">${Math.round(estimate.total).toLocaleString('en-AU')}</span></div>
                   <div>Alt Total: <span className="font-semibold">${Math.round(compare.estimate.total).toLocaleString('en-AU')}</span></div>
-                  <div>Delta: <span className="font-semibold">${Math.round(compare.estimate.total - calc.total).toLocaleString('en-AU')}</span></div>
-                  <div>Margin Delta: <span className="font-semibold">{(((compare.estimate.margin - calc.margin) / Math.max(calc.margin, 1)) * 100).toFixed(1)}%</span></div>
+                  <div>Delta: <span className="font-semibold">${Math.round(compare.estimate.total - estimate.total).toLocaleString('en-AU')}</span></div>
+                  <div>Margin Delta: <span className="font-semibold">{(((compare.estimate.margin - estimate.margin) / Math.max(estimate.margin, 1)) * 100).toFixed(1)}%</span></div>
                 </div>
               </Card>
             ) : null}

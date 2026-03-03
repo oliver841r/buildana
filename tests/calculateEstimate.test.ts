@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { calculateEstimate } from '../lib/engine/calculate';
+import { projectSchema } from '../lib/validation/schemas';
 
 const settings = {
   specCostPerSqm: { STANDARD: 1000, MID: 2000, PREMIUM: 3000, ULTRA: 4000 },
@@ -20,38 +21,85 @@ const settings = {
     Landscaping: 0.05,
     'Site Costs': 0.05
   }
-} as const;
+};
 
 describe('calculateEstimate', () => {
+  it('rejects zero sqm through validation schema', () => {
+    const parsed = projectSchema.safeParse({
+      projectName: 'A',
+      buildType: 'DUPLEX',
+      totalSqm: 0,
+      specLevel: 'STANDARD',
+      siteComplexity: 'FLAT',
+      status: 'DRAFT',
+      floors: 2,
+      addOns: [],
+      prelimPercent: 0.1,
+      marginPercent: 0.2,
+      contingencyPercent: 0.05
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it('rejects negative inputs through validation schema', () => {
+    const parsed = projectSchema.safeParse({
+      projectName: 'A',
+      buildType: 'DUPLEX',
+      totalSqm: -10,
+      specLevel: 'STANDARD',
+      siteComplexity: 'FLAT',
+      status: 'DRAFT',
+      floors: 2,
+      addOns: [],
+      prelimPercent: -0.1,
+      marginPercent: 0.2,
+      contingencyPercent: 0.05
+    });
+    expect(parsed.success).toBe(false);
+  });
+
   it('applies floors multiplier', () => {
     const res = calculateEstimate({
       projectName: 'A', buildType: 'DUPLEX', totalSqm: 100, specLevel: 'STANDARD', siteComplexity: 'FLAT', floors: 3,
       addOns: [], prelimPercent: 0.1, marginPercent: 0.2, contingencyPercent: 0.05
-    }, settings as any);
+    }, settings);
     expect(res.siteAdjusted).toBe(112000);
   });
 
-  it('applies add-on multiplier before flat cost', () => {
+  it('applies add-on multipliers then flat cost', () => {
     const res = calculateEstimate({
       projectName: 'A', buildType: 'DUPLEX', totalSqm: 100, specLevel: 'STANDARD', siteComplexity: 'FLAT', floors: 1,
-      addOns: [{ name: 'HIGH_CEILINGS', multiplier: 1.1 }, { name: 'POOL', flatCost: 5000 }], prelimPercent: 0, marginPercent: 0, contingencyPercent: 0
-    }, settings as any);
-    expect(res.addOnsAdjusted).toBe(115000);
+      addOns: [
+        { name: 'HIGH_CEILINGS', multiplier: 1.1 },
+        { name: 'HIGH_CEILINGS', multiplier: 1.05 },
+        { name: 'POOL', flatCost: 5000 }
+      ], prelimPercent: 0, marginPercent: 0, contingencyPercent: 0
+    }, settings);
+    expect(res.addOnsAdjusted).toBe(120500);
   });
 
   it('computes contingency math', () => {
     const res = calculateEstimate({
       projectName: 'A', buildType: 'DUPLEX', totalSqm: 100, specLevel: 'STANDARD', siteComplexity: 'FLAT', floors: 1,
       addOns: [], prelimPercent: 0.1, marginPercent: 0.2, contingencyPercent: 0.05
-    }, settings as any);
+    }, settings);
     expect(res.contingencyCost).toBe(5500);
+  });
+
+  it('handles extremely high margin', () => {
+    const res = calculateEstimate({
+      projectName: 'A', buildType: 'DUPLEX', totalSqm: 100, specLevel: 'STANDARD', siteComplexity: 'FLAT', floors: 1,
+      addOns: [], prelimPercent: 0.1, marginPercent: 0.95, contingencyPercent: 0.05
+    }, settings);
+    expect(res.total).toBeGreaterThan(res.subtotal);
+    expect(res.warnings).not.toContain('Margin below 20%');
   });
 
   it('generates warnings', () => {
     const res = calculateEstimate({
       projectName: 'A', buildType: 'DUPLEX', totalSqm: 100, specLevel: 'STANDARD', siteComplexity: 'FLAT', floors: 1,
       addOns: [], prelimPercent: 0.05, marginPercent: 0.1, contingencyPercent: 0.02
-    }, settings as any);
+    }, settings);
     expect(res.warnings).toContain('Margin below 20%');
     expect(res.warnings).toContain('Preliminaries below 8%');
     expect(res.warnings).toContain('Contingency below 3%');
@@ -61,7 +109,7 @@ describe('calculateEstimate', () => {
     const res = calculateEstimate({
       projectName: 'A', buildType: 'DUPLEX', totalSqm: 100, specLevel: 'STANDARD', siteComplexity: 'FLAT', floors: 1,
       addOns: [], prelimPercent: 0.1, marginPercent: 0.2, contingencyPercent: 0.05
-    }, { ...settings, categoryPercents: { ...settings.categoryPercents, 'Site Costs': 0.2 } } as any);
+    }, { ...settings, categoryPercents: { ...settings.categoryPercents, 'Site Costs': 0.2 } });
 
     expect(res.warnings.some((x) => x.includes('normalized'))).toBe(true);
     expect(Array.isArray(res.categoryBreakdown)).toBe(true);

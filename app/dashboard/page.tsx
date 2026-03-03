@@ -6,17 +6,17 @@ import { requireAuth } from '@/lib/auth/options';
 import { listProjects } from '@/app/actions/projectActions';
 import { formatAud } from '@/lib/utils/currency';
 import { ChartPanel } from '@/components/layout/ChartPanel';
+import { EstimateOutput } from '@/lib/engine/calculate';
 
 export default async function DashboardPage() {
   await requireAuth();
   const projects = await listProjects();
-  const totalPipeline = projects.reduce((acc, project) => acc + ((project.totals as any).total ?? 0), 0);
-  const averageMargin =
-    projects.length > 0
-      ? projects.reduce((acc, project) => acc + ((project.marginPercent ?? 0) * 100), 0) / projects.length
-      : 0;
-  const warningsCount = projects.reduce((acc, project) => acc + (((project.totals as any)?.warnings?.length as number) || 0), 0);
-  const attentionNeeded = projects.filter((project) => (((project.totals as any)?.warnings ?? []) as string[]).length > 0);
+  const enriched = projects.map((project) => ({ ...project, estimate: project.totals as EstimateOutput }));
+
+  const totalPipeline = enriched.reduce((acc, project) => acc + project.estimate.total, 0);
+  const averageMargin = enriched.length > 0 ? enriched.reduce((acc, project) => acc + project.marginPercent * 100, 0) / enriched.length : 0;
+  const warningsCount = enriched.reduce((acc, project) => acc + project.estimate.warnings.length, 0);
+  const attentionNeeded = enriched.filter((project) => project.estimate.warnings.length > 0);
 
   return (
     <div className="space-y-5">
@@ -47,13 +47,13 @@ export default async function DashboardPage() {
               <Link className="block p-4 hover:bg-zinc-50" href={`/projects/${project.id}`} key={project.id}>
                 <div className="flex items-center justify-between">
                   <p className="font-medium">{project.name}</p>
-                  <Badge className="bg-amber-100 text-amber-900">{((project.totals as any)?.warnings ?? []).length} warnings</Badge>
+                  <Badge className="bg-amber-100 text-amber-900">{project.estimate.warnings.length} warnings</Badge>
                 </div>
               </Link>
             ))}
           </div>
         </Card>
-        <ChartPanel projects={projects.map((project) => ({ name: project.name, marginPercent: project.marginPercent }))} />
+        <ChartPanel projects={enriched.map((project) => ({ name: project.name, marginPercent: project.marginPercent }))} />
       </div>
     </div>
   );

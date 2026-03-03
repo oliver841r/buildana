@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { settingsSchema } from '@/lib/validation/schemas';
+import { settingsSchema, SettingsInput } from '@/lib/validation/schemas';
 import { updateSettings } from '@/app/actions/projectActions';
 import { CATEGORY_NAMES } from '@/lib/engine/normalize';
 
@@ -18,12 +18,12 @@ export default function SettingsPage() {
   const [pending, startTransition] = useTransition();
   const [loaded, setLoaded] = useState(false);
   const [sumMessage, setSumMessage] = useState('');
-  const form = useForm<any>({ resolver: zodResolver(settingsSchema) });
+  const form = useForm<SettingsInput>({ resolver: zodResolver(settingsSchema) });
 
   useEffect(() => {
     fetch('/api/settings')
       .then((r) => r.json())
-      .then((json) => {
+      .then((json: SettingsInput) => {
         form.reset(json);
         setLoaded(true);
       });
@@ -50,7 +50,7 @@ export default function SettingsPage() {
           <section>
             <h2 className="text-lg font-semibold">Spec Rates ($/sqm)</h2>
             <div className="mt-3 grid gap-3 md:grid-cols-4">
-              {['STANDARD', 'MID', 'PREMIUM', 'ULTRA'].map((key) => (
+              {(['STANDARD', 'MID', 'PREMIUM', 'ULTRA'] as const).map((key) => (
                 <div key={key}><label className={labelClass}>{key}</label><Input type="number" {...form.register(`specCostPerSqm.${key}`, { valueAsNumber: true })} /></div>
               ))}
             </div>
@@ -59,7 +59,7 @@ export default function SettingsPage() {
           <section>
             <h2 className="text-lg font-semibold">Site Multiplier</h2>
             <div className="mt-3 grid gap-3 md:grid-cols-3">
-              {['FLAT', 'MODERATE', 'COMPLEX'].map((key) => (
+              {(['FLAT', 'MODERATE', 'COMPLEX'] as const).map((key) => (
                 <div key={key}><label className={labelClass}>{key}</label><Input type="number" step="0.01" {...form.register(`siteMultiplier.${key}`, { valueAsNumber: true })} /></div>
               ))}
             </div>
@@ -68,7 +68,7 @@ export default function SettingsPage() {
           <section>
             <h2 className="text-lg font-semibold">Floors Multiplier</h2>
             <div className="mt-3 grid gap-3 md:grid-cols-3">
-              {['1', '2', '3'].map((key) => (
+              {(['1', '2', '3'] as const).map((key) => (
                 <div key={key}><label className={labelClass}>{key} floor(s)</label><Input type="number" step="0.01" {...form.register(`featureCosts.floorsMultiplier.${key}`, { valueAsNumber: true })} /></div>
               ))}
             </div>
@@ -77,7 +77,7 @@ export default function SettingsPage() {
           <section>
             <h2 className="text-lg font-semibold">Add-on Defaults</h2>
             <div className="space-y-2">
-              {(form.watch('addOnDefaults') ?? []).map((_: any, i: number) => (
+              {(form.watch('addOnDefaults') ?? []).map((_, i) => (
                 <div className="grid gap-2 md:grid-cols-3" key={i}>
                   <Input placeholder="Name" {...form.register(`addOnDefaults.${i}.name`)} />
                   <select className="rounded-md border border-zinc-300 px-3 py-2 text-sm" {...form.register(`addOnDefaults.${i}.type`)}>

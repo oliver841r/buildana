@@ -4,14 +4,25 @@ import { revalidatePath } from 'next/cache';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { prisma } from '@/lib/db/prisma';
 import { requireAuth } from '@/lib/auth/options';
-import { calculateEstimate } from '@/lib/engine/calculate';
-import { projectSchema, settingsSchema } from '@/lib/validation/schemas';
+import { calculateEstimate, EstimateOutput } from '@/lib/engine/calculate';
+import { CategoryPercents, normalizeCategoryPercents } from '@/lib/engine/normalize';
+import { AddOnDefaultInput, projectSchema, settingsSchema } from '@/lib/validation/schemas';
 import { EstimatePdf } from '@/components/pdf/EstimatePdf';
+import { buildProjectSnapshot } from '@/lib/projects/snapshot';
 
 async function loadSettings() {
   const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } });
   if (!settings) throw new Error('Settings not found');
   return settings;
+}
+
+function mapSettings(settings: Awaited<ReturnType<typeof loadSettings>>) {
+  return {
+    specCostPerSqm: settings.specCostPerSqm as Record<'STANDARD' | 'MID' | 'PREMIUM' | 'ULTRA', number>,
+    siteMultiplier: settings.siteMultiplier as Record<'FLAT' | 'MODERATE' | 'COMPLEX', number>,
+    categoryPercents: (settings.categoryPercents as { raw: CategoryPercents }).raw,
+    featureCosts: settings.featureCosts as { floorsMultiplier: Record<'1' | '2' | '3', number> }
+  };
 }
 
 export async function listProjects() {
@@ -25,20 +36,11 @@ export async function getProject(id: string) {
   return prisma.project.findUnique({ where: { id }, include: { breakdowns: true, versions: { orderBy: { versionNumber: 'desc' } } } });
 }
 
-function mapSettings(settings: any) {
-  return {
-    specCostPerSqm: settings.specCostPerSqm as any,
-    siteMultiplier: settings.siteMultiplier as any,
-    categoryPercents: (settings.categoryPercents as any).raw,
-    featureCosts: settings.featureCosts as any
-  };
-}
-
 export async function createProject(data: unknown) {
   await requireAuth(['ADMIN', 'ESTIMATOR']);
   const parsed = projectSchema.parse(data);
   const settings = await loadSettings();
-  const estimate = calculateEstimate(parsed as any, mapSettings(settings));
+  const estimate = calculateEstimate(parsed, mapSettings(settings));
 
   const project = await prisma.project.create({
     data: {
@@ -71,7 +73,7 @@ export async function updateProject(id: string, data: unknown) {
   if (!id) throw new Error('Project ID is required');
   const parsed = projectSchema.parse(data);
   const settings = await loadSettings();
-  const estimate = calculateEstimate(parsed as any, mapSettings(settings));
+  const estimate = calculateEstimate(parsed, mapSettings(settings));
 
   await prisma.$transaction([
     prisma.projectCategoryBreakdown.deleteMany({ where: { projectId: id } }),
@@ -104,7 +106,7 @@ export async function updateProject(id: string, data: unknown) {
 
 export async function saveProjectVersion(projectId: string, label?: string) {
   await requireAuth(['ADMIN', 'ESTIMATOR']);
-  const project = await prisma.project.findUnique({ where: { id: projectId }, include: { versions: true } });
+  const project = await prisma.project.findUnique({ where: { id: projectId }, include: { versions: { orderBy: { versionNumber: 'desc' } } } });
   if (!project) throw new Error('Project not found');
   const versionNumber = (project.versions[0]?.versionNumber ?? 0) + 1;
 
@@ -113,25 +115,7 @@ export async function saveProjectVersion(projectId: string, label?: string) {
       projectId,
       versionNumber,
       label,
-      snapshot: {
-        inputs: {
-          projectName: project.name,
-          clientName: project.clientName,
-          address: project.address,
-          buildType: project.buildType,
-          totalSqm: project.totalSqm,
-          specLevel: project.specLevel,
-          siteComplexity: project.siteComplexity,
-          floors: project.floors,
-          status: project.status,
-          prelimPercent: project.prelimPercent,
-          marginPercent: project.marginPercent,
-          contingencyPercent: project.contingencyPercent,
-          addOns: project.addOns,
-          notes: project.notes
-        },
-        outputs: project.totals
-      }
+      snapshot: buildProjectSnapshot(project)
     }
   });
 
@@ -149,7 +133,7 @@ export async function exportPdf(id: string, mode: 'CLIENT' | 'INTERNAL' = 'CLIEN
   if (!id) throw new Error('Project ID is required');
   const project = await prisma.project.findUnique({ where: { id } });
   if (!project) throw new Error('Project not found');
-  const estimate = project.totals as any;
+  const estimate = project.totals as EstimateOutput;
   const buffer = await renderToBuffer(
     <EstimatePdf
       projectName={project.name}
@@ -166,14 +150,18 @@ export async function exportPdf(id: string, mode: 'CLIENT' | 'INTERNAL' = 'CLIEN
 export async function updateSettings(data: unknown) {
   await requireAuth(['ADMIN']);
   const parsed = settingsSchema.parse(data);
+  const normalized = normalizeCategoryPercents(parsed.categoryPercents);
+
+  const addOnDefaults: AddOnDefaultInput[] = parsed.addOnDefaults;
+
   await prisma.settings.update({
     where: { id: 'singleton' },
     data: {
       specCostPerSqm: parsed.specCostPerSqm,
       siteMultiplier: parsed.siteMultiplier,
       featureCosts: parsed.featureCosts,
-      addOnDefaults: parsed.addOnDefaults,
-      categoryPercents: { raw: parsed.categoryPercents, normalized: parsed.categoryPercents }
+      addOnDefaults,
+      categoryPercents: { raw: parsed.categoryPercents, normalized: normalized.normalized }
     }
   });
   revalidatePath('/settings');

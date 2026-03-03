@@ -4,8 +4,10 @@ import { type NextAuthOptions, getServerSession } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
+import { env } from '@/lib/env';
 
 export const authOptions: NextAuthOptions = {
+  secret: env.NEXTAUTH_SECRET,
   session: { strategy: 'jwt' },
   pages: { signIn: '/login' },
   providers: [
@@ -33,14 +35,14 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub ?? '';
-        session.user.role = token.role as Role;
+        session.user.role = (token.role as Role) ?? Role.VIEWER;
       }
       return session;
     }
   }
 };
 
-export async function requireAuth(roles?: Array<Role | string>) {
+export async function requireAuth(roles?: Role[]) {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect('/login');
   if (roles && !roles.includes(session.user.role)) redirect('/dashboard');

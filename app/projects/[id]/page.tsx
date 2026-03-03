@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { exportPdf, getProject, saveProjectVersion, updateProject, updateProjectNotes } from '@/app/actions/projectActions';
 import { ProjectWorkspace } from '@/components/forms/ProjectWorkspace';
 import { requireAuth } from '@/lib/auth/options';
+import { AddOnInput } from '@/lib/engine/calculate';
 
 type ProjectPageProps = {
   params: Promise<{ id?: string }>;
@@ -30,13 +31,16 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
           siteComplexity: project.siteComplexity,
           status: project.status,
           floors: project.floors,
-          addOns: project.addOns as any,
+          addOns: project.addOns as AddOnInput[],
           prelimPercent: project.prelimPercent,
           marginPercent: project.marginPercent,
           contingencyPercent: project.contingencyPercent,
           notes: project.notes
         }}
-        versions={project.versions as any}
+        versions={project.versions.map((version) => ({
+          ...version,
+          snapshot: version.snapshot as { inputs: unknown; outputs: unknown }
+        }))}
         onSave={async (data) => {
           'use server';
           await updateProject(project.id, data);

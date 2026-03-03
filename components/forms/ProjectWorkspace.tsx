@@ -6,7 +6,10 @@ import { ProjectForm } from '@/components/forms/ProjectForm';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
-type VersionItem = { id: string; versionNumber: number; label: string | null; createdAt: Date; snapshot: any };
+type WorkspaceTab = 'ESTIMATE' | 'PDF' | 'VERSIONS' | 'NOTES';
+type ExportMode = 'CLIENT' | 'INTERNAL';
+
+type VersionItem = { id: string; versionNumber: number; label: string | null; createdAt: Date; snapshot: { inputs: ProjectInput; outputs: unknown } };
 
 export function ProjectWorkspace({
   initial,
@@ -19,21 +22,21 @@ export function ProjectWorkspace({
   initial: ProjectInput;
   versions: VersionItem[];
   onSave: (data: ProjectInput) => Promise<void>;
-  onExport: (mode: 'CLIENT' | 'INTERNAL') => Promise<string>;
+  onExport: (mode: ExportMode) => Promise<string>;
   onSaveVersion: (label?: string) => Promise<void>;
   onSaveNotes: (notes: string) => Promise<void>;
 }) {
-  const [tab, setTab] = useState<'ESTIMATE' | 'PDF' | 'VERSIONS' | 'NOTES'>('ESTIMATE');
+  const [tab, setTab] = useState<WorkspaceTab>('ESTIMATE');
   const [pdfSrc, setPdfSrc] = useState('');
-  const [mode, setMode] = useState<'CLIENT' | 'INTERNAL'>('CLIENT');
+  const [mode, setMode] = useState<ExportMode>('CLIENT');
   const [noteText, setNoteText] = useState(initial.notes ?? '');
   const [pending, startTransition] = useTransition();
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        {['ESTIMATE', 'PDF', 'VERSIONS', 'NOTES'].map((name) => (
-          <Button key={name} type="button" className={tab === name ? 'bg-[#FFC700] text-zinc-950' : 'bg-zinc-100 text-zinc-900'} onClick={() => setTab(name as any)}>{name}</Button>
+        {(['ESTIMATE', 'PDF', 'VERSIONS', 'NOTES'] as WorkspaceTab[]).map((name) => (
+          <Button key={name} type="button" className={tab === name ? 'bg-[#FFC700] text-zinc-950' : 'bg-zinc-100 text-zinc-900'} onClick={() => setTab(name)}>{name}</Button>
         ))}
       </div>
 
@@ -42,7 +45,7 @@ export function ProjectWorkspace({
       {tab === 'PDF' ? (
         <Card className="space-y-3">
           <div className="flex items-center gap-2">
-            <select className="rounded-md border border-zinc-300 px-3 py-2 text-sm" value={mode} onChange={(e) => setMode(e.target.value as any)}>
+            <select className="rounded-md border border-zinc-300 px-3 py-2 text-sm" value={mode} onChange={(e) => setMode(e.target.value as ExportMode)}>
               <option value="CLIENT">Client version</option>
               <option value="INTERNAL">Internal version</option>
             </select>

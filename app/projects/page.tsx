@@ -1,35 +1,43 @@
 import Link from 'next/link';
+import { BuildType, ProjectStatus, SpecLevel } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { requireAuth } from '@/lib/auth/options';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatAud } from '@/lib/utils/currency';
+import { EstimateOutput } from '@/lib/engine/calculate';
 
 export default async function ProjectsPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
   await requireAuth();
   const q = (searchParams.q as string) ?? '';
-  const buildType = (searchParams.buildType as string) || undefined;
-  const specLevel = (searchParams.specLevel as string) || undefined;
-  const status = (searchParams.status as string) || undefined;
+  const buildType = searchParams.buildType as BuildType | undefined;
+  const specLevel = searchParams.specLevel as SpecLevel | undefined;
+  const status = searchParams.status as ProjectStatus | undefined;
   const warningOnly = (searchParams.warningOnly as string) === '1';
   const sort = (searchParams.sort as string) || 'updatedAt';
 
   const projects = await prisma.project.findMany({
     where: {
       name: { contains: q, mode: 'insensitive' },
-      ...(buildType ? { buildType: buildType as any } : {}),
-      ...(specLevel ? { specLevel: specLevel as any } : {}),
-      ...(status ? { status: status as any } : {})
+      ...(buildType ? { buildType } : {}),
+      ...(specLevel ? { specLevel } : {}),
+      ...(status ? { status } : {})
     },
-    orderBy:
-      sort === 'totalCost'
-        ? { totals: 'desc' as any }
-        : sort === 'marginPercent'
-          ? { marginPercent: 'desc' }
-          : { updatedAt: 'desc' }
+    orderBy: { updatedAt: 'desc' }
   });
 
-  const filtered = warningOnly ? projects.filter((p) => (((p.totals as any)?.warnings ?? []) as string[]).length > 0) : projects;
+  const withTotals = projects.map((project) => ({
+    ...project,
+    estimate: project.totals as EstimateOutput
+  }));
+
+  const warningFiltered = warningOnly ? withTotals.filter((p) => p.estimate.warnings.length > 0) : withTotals;
+
+  const filtered = [...warningFiltered].sort((a, b) => {
+    if (sort === 'marginPercent') return b.marginPercent - a.marginPercent;
+    if (sort === 'totalCost') return b.estimate.total - a.estimate.total;
+    return b.updatedAt.getTime() - a.updatedAt.getTime();
+  });
 
   return (
     <div className="space-y-4">
@@ -53,8 +61,8 @@ export default async function ProjectsPage({ searchParams }: { searchParams: { [
                 <td className="p-3">{project.buildType}</td>
                 <td className="p-3">{project.specLevel}</td>
                 <td className="p-3"><Badge>{project.status}</Badge></td>
-                <td className="p-3 font-medium">{formatAud((project.totals as any)?.total ?? 0)}</td>
-                <td className="p-3 text-amber-700">{((project.totals as any)?.warnings ?? []).length}</td>
+                <td className="p-3 font-medium">{formatAud(project.estimate.total)}</td>
+                <td className="p-3 text-amber-700">{project.estimate.warnings.length}</td>
               </tr>
             ))}
           </tbody>
