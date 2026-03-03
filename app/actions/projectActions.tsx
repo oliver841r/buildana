@@ -22,38 +22,47 @@ export async function listProjects() {
 export async function getProject(id: string) {
   await requireAuth();
   if (!id) return null;
-  return prisma.project.findUnique({ where: { id }, include: { breakdowns: true } });
+  return prisma.project.findUnique({ where: { id }, include: { breakdowns: true, versions: { orderBy: { versionNumber: 'desc' } } } });
+}
+
+function mapSettings(settings: any) {
+  return {
+    specCostPerSqm: settings.specCostPerSqm as any,
+    siteMultiplier: settings.siteMultiplier as any,
+    categoryPercents: (settings.categoryPercents as any).raw,
+    featureCosts: settings.featureCosts as any
+  };
 }
 
 export async function createProject(data: unknown) {
   await requireAuth(['ADMIN', 'ESTIMATOR']);
   const parsed = projectSchema.parse(data);
   const settings = await loadSettings();
-  const estimate = calculateEstimate(parsed, {
-    specCostPerSqm: settings.specCostPerSqm as any,
-    siteMultiplier: settings.siteMultiplier as any,
-    categoryPercents: (settings.categoryPercents as any).raw,
-    featureCosts: settings.featureCosts as any
-  });
+  const estimate = calculateEstimate(parsed as any, mapSettings(settings));
 
   const project = await prisma.project.create({
     data: {
       name: parsed.projectName,
+      clientName: parsed.clientName,
+      address: parsed.address,
       buildType: parsed.buildType,
       totalSqm: parsed.totalSqm,
       specLevel: parsed.specLevel,
       siteComplexity: parsed.siteComplexity,
+      floors: parsed.floors,
+      status: parsed.status,
       prelimPercent: parsed.prelimPercent,
       marginPercent: parsed.marginPercent,
+      contingencyPercent: parsed.contingencyPercent,
       addOns: parsed.addOns,
+      notes: parsed.notes,
       totals: estimate,
-      breakdowns: {
-        create: estimate.categoryBreakdown
-      }
+      breakdowns: { create: estimate.categoryBreakdown }
     }
   });
 
   revalidatePath('/dashboard');
+  revalidatePath('/projects');
   return project;
 }
 
@@ -62,12 +71,7 @@ export async function updateProject(id: string, data: unknown) {
   if (!id) throw new Error('Project ID is required');
   const parsed = projectSchema.parse(data);
   const settings = await loadSettings();
-  const estimate = calculateEstimate(parsed, {
-    specCostPerSqm: settings.specCostPerSqm as any,
-    siteMultiplier: settings.siteMultiplier as any,
-    categoryPercents: (settings.categoryPercents as any).raw,
-    featureCosts: settings.featureCosts as any
-  });
+  const estimate = calculateEstimate(parsed as any, mapSettings(settings));
 
   await prisma.$transaction([
     prisma.projectCategoryBreakdown.deleteMany({ where: { projectId: id } }),
@@ -75,46 +79,101 @@ export async function updateProject(id: string, data: unknown) {
       where: { id },
       data: {
         name: parsed.projectName,
+        clientName: parsed.clientName,
+        address: parsed.address,
         buildType: parsed.buildType,
         totalSqm: parsed.totalSqm,
         specLevel: parsed.specLevel,
         siteComplexity: parsed.siteComplexity,
+        floors: parsed.floors,
+        status: parsed.status,
         prelimPercent: parsed.prelimPercent,
         marginPercent: parsed.marginPercent,
+        contingencyPercent: parsed.contingencyPercent,
         addOns: parsed.addOns,
+        notes: parsed.notes,
         totals: estimate,
-        breakdowns: {
-          create: estimate.categoryBreakdown
-        }
+        breakdowns: { create: estimate.categoryBreakdown }
       }
     })
   ]);
 
   revalidatePath(`/projects/${id}`);
+  revalidatePath('/projects');
 }
 
-export async function exportPdf(id: string) {
+export async function saveProjectVersion(projectId: string, label?: string) {
+  await requireAuth(['ADMIN', 'ESTIMATOR']);
+  const project = await prisma.project.findUnique({ where: { id: projectId }, include: { versions: true } });
+  if (!project) throw new Error('Project not found');
+  const versionNumber = (project.versions[0]?.versionNumber ?? 0) + 1;
+
+  await prisma.projectVersion.create({
+    data: {
+      projectId,
+      versionNumber,
+      label,
+      snapshot: {
+        inputs: {
+          projectName: project.name,
+          clientName: project.clientName,
+          address: project.address,
+          buildType: project.buildType,
+          totalSqm: project.totalSqm,
+          specLevel: project.specLevel,
+          siteComplexity: project.siteComplexity,
+          floors: project.floors,
+          status: project.status,
+          prelimPercent: project.prelimPercent,
+          marginPercent: project.marginPercent,
+          contingencyPercent: project.contingencyPercent,
+          addOns: project.addOns,
+          notes: project.notes
+        },
+        outputs: project.totals
+      }
+    }
+  });
+
+  revalidatePath(`/projects/${projectId}`);
+}
+
+export async function updateProjectNotes(projectId: string, notes: string) {
+  await requireAuth(['ADMIN', 'ESTIMATOR']);
+  await prisma.project.update({ where: { id: projectId }, data: { notes } });
+  revalidatePath(`/projects/${projectId}`);
+}
+
+export async function exportPdf(id: string, mode: 'CLIENT' | 'INTERNAL' = 'CLIENT') {
   await requireAuth();
   if (!id) throw new Error('Project ID is required');
   const project = await prisma.project.findUnique({ where: { id } });
   if (!project) throw new Error('Project not found');
   const estimate = project.totals as any;
-  const buffer = await renderToBuffer(<EstimatePdf projectName={project.name} estimate={estimate} />);
+  const buffer = await renderToBuffer(
+    <EstimatePdf
+      projectName={project.name}
+      clientName={project.clientName ?? undefined}
+      address={project.address ?? undefined}
+      notes={project.notes ?? undefined}
+      estimate={estimate}
+      mode={mode}
+    />
+  );
   return buffer.toString('base64');
 }
 
 export async function updateSettings(data: unknown) {
   await requireAuth(['ADMIN']);
   const parsed = settingsSchema.parse(data);
-  const existing = await prisma.settings.findUnique({ where: { id: 'singleton' } });
   await prisma.settings.update({
     where: { id: 'singleton' },
     data: {
       specCostPerSqm: parsed.specCostPerSqm,
       siteMultiplier: parsed.siteMultiplier,
       featureCosts: parsed.featureCosts,
-      categoryPercents: { raw: parsed.categoryPercents, normalized: parsed.categoryPercents },
-      addOnDefaults: existing?.addOnDefaults ?? {}
+      addOnDefaults: parsed.addOnDefaults,
+      categoryPercents: { raw: parsed.categoryPercents, normalized: parsed.categoryPercents }
     }
   });
   revalidatePath('/settings');

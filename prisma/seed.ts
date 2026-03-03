@@ -22,59 +22,42 @@ const categoryRaw = {
 const sum = Object.values(categoryRaw).reduce((acc, val) => acc + val, 0);
 const normalized = Object.fromEntries(Object.entries(categoryRaw).map(([k, v]) => [k, v / sum]));
 
-const featureCosts = {
-  bedroomCost: 18000,
-  bathroomCost: 24000,
-  garageSpaceCost: 12000,
-  doubleStoreyMultiplier: 1.12,
-  sustainabilityFlatCosts: { NONE: 0, SILVER: 18000, GOLD: 42000 },
-  energyPackageCosts: { STANDARD: 0, BASIX_PLUS: 14000, NET_ZERO_READY: 36000 },
-  regionalMultiplier: { METRO: 1, REGIONAL: 1.06, REMOTE: 1.14 },
-  facadeMultiplier: { STANDARD: 1, ARCHITECTURAL: 1.08, LUXURY: 1.16 },
-  qualityAssurancePercentDefault: 0.02,
-  permitCostDefault: 15000
-};
-
 async function main() {
   const passwordHash = await bcrypt.hash('Buildana123!', 10);
 
   await prisma.user.upsert({
     where: { email: 'admin@buildana.com.au' },
     update: { passwordHash, role: Role.ADMIN },
-    create: {
-      email: 'admin@buildana.com.au',
-      passwordHash,
-      role: Role.ADMIN
-    }
+    create: { email: 'admin@buildana.com.au', passwordHash, role: Role.ADMIN }
   });
 
   await prisma.settings.upsert({
     where: { id: 'singleton' },
     update: {
-      specCostPerSqm: { STANDARD: 1850, MID: 2400, PREMIUM: 3200 },
+      specCostPerSqm: { STANDARD: 1850, MID: 2400, PREMIUM: 3200, ULTRA: 4200 },
       siteMultiplier: { FLAT: 1, MODERATE: 1.08, COMPLEX: 1.18 },
-      featureCosts,
-      addOnDefaults: {
-        POOL: { flatCost: 65000 },
-        HIGH_CEILINGS: { multiplier: 1.05 },
-        UPGRADED_WINDOWS: { flatCost: 18000 },
-        SMART_HOME: { flatCost: 22000 },
-        LANDSCAPING_PREMIUM: { flatCost: 30000 }
-      },
+      featureCosts: { floorsMultiplier: { '1': 1, '2': 1.06, '3': 1.12 } },
+      addOnDefaults: [
+        { name: 'POOL', type: 'flat', value: 65000 },
+        { name: 'HIGH_CEILINGS', type: 'multiplier', value: 1.05 },
+        { name: 'UPGRADED_WINDOWS', type: 'flat', value: 18000 },
+        { name: 'SMART_HOME', type: 'flat', value: 22000 },
+        { name: 'LANDSCAPING_PREMIUM', type: 'flat', value: 30000 }
+      ],
       categoryPercents: { raw: categoryRaw, normalized }
     },
     create: {
       id: 'singleton',
-      specCostPerSqm: { STANDARD: 1850, MID: 2400, PREMIUM: 3200 },
+      specCostPerSqm: { STANDARD: 1850, MID: 2400, PREMIUM: 3200, ULTRA: 4200 },
       siteMultiplier: { FLAT: 1, MODERATE: 1.08, COMPLEX: 1.18 },
-      featureCosts,
-      addOnDefaults: {
-        POOL: { flatCost: 65000 },
-        HIGH_CEILINGS: { multiplier: 1.05 },
-        UPGRADED_WINDOWS: { flatCost: 18000 },
-        SMART_HOME: { flatCost: 22000 },
-        LANDSCAPING_PREMIUM: { flatCost: 30000 }
-      },
+      featureCosts: { floorsMultiplier: { '1': 1, '2': 1.06, '3': 1.12 } },
+      addOnDefaults: [
+        { name: 'POOL', type: 'flat', value: 65000 },
+        { name: 'HIGH_CEILINGS', type: 'multiplier', value: 1.05 },
+        { name: 'UPGRADED_WINDOWS', type: 'flat', value: 18000 },
+        { name: 'SMART_HOME', type: 'flat', value: 22000 },
+        { name: 'LANDSCAPING_PREMIUM', type: 'flat', value: 30000 }
+      ],
       categoryPercents: { raw: categoryRaw, normalized }
     }
   });

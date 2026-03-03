@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { calculateEstimate } from '../lib/engine/calculate';
 
 const settings = {
-  specCostPerSqm: { STANDARD: 1000, MID: 2000, PREMIUM: 3000 },
+  specCostPerSqm: { STANDARD: 1000, MID: 2000, PREMIUM: 3000, ULTRA: 4000 },
   siteMultiplier: { FLAT: 1, MODERATE: 1.1, COMPLEX: 1.2 },
-  featureCosts: { bedroomCost: 1000, bathroomCost: 2000, garageSpaceCost: 500, doubleStoreyMultiplier: 1.1 },
+  featureCosts: { floorsMultiplier: { '1': 1, '2': 1.06, '3': 1.12 } },
   categoryPercents: {
     'Slab & Structure': 0.1,
     Framing: 0.1,
@@ -23,148 +23,47 @@ const settings = {
 } as const;
 
 describe('calculateEstimate', () => {
-  it('warns when margin below threshold', () => {
-    const res = calculateEstimate(
-      {
-        projectName: 'A',
-        buildType: 'DUPLEX',
-        totalSqm: 100,
-        specLevel: 'STANDARD',
-        siteComplexity: 'FLAT',
-        addOns: [],
-        prelimPercent: 0.1,
-        marginPercent: 0.1
-      },
-      settings as any
-    );
-    expect(res.warnings).toContain('Margin below 20%');
-  });
-
-  it('normalizes percentages when needed', () => {
-    const res = calculateEstimate(
-      {
-        projectName: 'A',
-        buildType: 'DUPLEX',
-        totalSqm: 100,
-        specLevel: 'STANDARD',
-        siteComplexity: 'FLAT',
-        addOns: [],
-        prelimPercent: 0.1,
-        marginPercent: 0.2
-      },
-      {
-        ...settings,
-        categoryPercents: { ...settings.categoryPercents, 'Site Costs': 0.2 }
-      } as any
-    );
-    expect(res.warnings.some((x) => x.includes('normalized'))).toBe(true);
+  it('applies floors multiplier', () => {
+    const res = calculateEstimate({
+      projectName: 'A', buildType: 'DUPLEX', totalSqm: 100, specLevel: 'STANDARD', siteComplexity: 'FLAT', floors: 3,
+      addOns: [], prelimPercent: 0.1, marginPercent: 0.2, contingencyPercent: 0.05
+    }, settings as any);
+    expect(res.siteAdjusted).toBe(112000);
   });
 
   it('applies add-on multiplier before flat cost', () => {
-    const res = calculateEstimate(
-      {
-        projectName: 'A',
-        buildType: 'DUPLEX',
-        totalSqm: 100,
-        specLevel: 'STANDARD',
-        siteComplexity: 'FLAT',
-        addOns: [{ name: 'HIGH_CEILINGS', multiplier: 1.1 }, { name: 'POOL', flatCost: 5000 }],
-        prelimPercent: 0,
-        marginPercent: 0,
-        bedroomCount: 0,
-        bathroomCount: 0,
-        garageSpaces: 0,
-        storeys: 1
-      },
-      settings as any
-    );
+    const res = calculateEstimate({
+      projectName: 'A', buildType: 'DUPLEX', totalSqm: 100, specLevel: 'STANDARD', siteComplexity: 'FLAT', floors: 1,
+      addOns: [{ name: 'HIGH_CEILINGS', multiplier: 1.1 }, { name: 'POOL', flatCost: 5000 }], prelimPercent: 0, marginPercent: 0, contingencyPercent: 0
+    }, settings as any);
     expect(res.addOnsAdjusted).toBe(115000);
   });
 
-  it('applies room adjustments and storey multiplier', () => {
-    const res = calculateEstimate(
-      {
-        projectName: 'A',
-        buildType: 'CUSTOM_HOME',
-        totalSqm: 100,
-        specLevel: 'STANDARD',
-        siteComplexity: 'FLAT',
-        addOns: [],
-        prelimPercent: 0,
-        marginPercent: 0,
-        bedroomCount: 3,
-        bathroomCount: 2,
-        garageSpaces: 1,
-        storeys: 2
-      },
-      settings as any
-    );
-
-    expect(res.roomConfiguration.roomAdjustment).toBe(8500);
-    expect(res.addOnsAdjusted).toBe(118500);
+  it('computes contingency math', () => {
+    const res = calculateEstimate({
+      projectName: 'A', buildType: 'DUPLEX', totalSqm: 100, specLevel: 'STANDARD', siteComplexity: 'FLAT', floors: 1,
+      addOns: [], prelimPercent: 0.1, marginPercent: 0.2, contingencyPercent: 0.05
+    }, settings as any);
+    expect(res.contingencyCost).toBe(5500);
   });
 
-  it('computes totals accurately', () => {
-    const res = calculateEstimate(
-      {
-        projectName: 'A',
-        buildType: 'DUPLEX',
-        totalSqm: 100,
-        specLevel: 'STANDARD',
-        siteComplexity: 'FLAT',
-        addOns: [],
-        prelimPercent: 0.1,
-        marginPercent: 0.2,
-        bedroomCount: 0,
-        bathroomCount: 0,
-        garageSpaces: 0,
-        storeys: 1
-      },
-      settings as any
-    );
-
-    expect(res.baseCost).toBe(100000);
-    expect(res.prelimCost).toBe(10000);
-    expect(res.subtotal).toBe(110000);
-    expect(res.margin).toBe(22000);
-    expect(res.total).toBe(132000);
+  it('generates warnings', () => {
+    const res = calculateEstimate({
+      projectName: 'A', buildType: 'DUPLEX', totalSqm: 100, specLevel: 'STANDARD', siteComplexity: 'FLAT', floors: 1,
+      addOns: [], prelimPercent: 0.05, marginPercent: 0.1, contingencyPercent: 0.02
+    }, settings as any);
+    expect(res.warnings).toContain('Margin below 20%');
+    expect(res.warnings).toContain('Preliminaries below 8%');
+    expect(res.warnings).toContain('Contingency below 3%');
   });
 
-  it('supports advanced commercial controls', () => {
-    const res = calculateEstimate(
-      {
-        projectName: 'A',
-        buildType: 'CUSTOM_HOME',
-        totalSqm: 100,
-        specLevel: 'STANDARD',
-        siteComplexity: 'FLAT',
-        addOns: [],
-        prelimPercent: 0.1,
-        marginPercent: 0.2,
-        contingencyPercent: 0.05,
-        escalationPercent: 0.03,
-        qualityAssurancePercent: 0.02,
-        timelineMonths: 12,
-        discountPercent: 0.05,
-        includeGst: true,
-        gstPercent: 0.1,
-        permitCost: 10000,
-        regionType: 'REGIONAL',
-        facadeType: 'ARCHITECTURAL',
-        sustainabilityLevel: 'SILVER',
-        energyPackage: 'BASIX_PLUS',
-        bedroomCount: 0,
-        bathroomCount: 0,
-        garageSpaces: 0,
-        storeys: 1
-      },
-      settings as any
-    );
+  it('normalizes percentages when needed', () => {
+    const res = calculateEstimate({
+      projectName: 'A', buildType: 'DUPLEX', totalSqm: 100, specLevel: 'STANDARD', siteComplexity: 'FLAT', floors: 1,
+      addOns: [], prelimPercent: 0.1, marginPercent: 0.2, contingencyPercent: 0.05
+    }, { ...settings, categoryPercents: { ...settings.categoryPercents, 'Site Costs': 0.2 } } as any);
 
-    expect(res.gstCost).toBeGreaterThan(0);
-    expect(res.discountAmount).toBeGreaterThan(0);
-    expect(res.contingencyCost).toBeGreaterThan(0);
-    expect(res.total).toBeGreaterThan(res.subtotal);
+    expect(res.warnings.some((x) => x.includes('normalized'))).toBe(true);
+    expect(Array.isArray(res.categoryBreakdown)).toBe(true);
   });
-
 });

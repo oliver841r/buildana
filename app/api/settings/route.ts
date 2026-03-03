@@ -2,17 +2,17 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { requireAuth } from '@/lib/auth/options';
 
-const defaultFeatureCosts = {
-  bedroomCost: 18000,
-  bathroomCost: 24000,
-  garageSpaceCost: 12000,
-  doubleStoreyMultiplier: 1.12,
-  sustainabilityFlatCosts: { NONE: 0, SILVER: 18000, GOLD: 42000 },
-  energyPackageCosts: { STANDARD: 0, BASIX_PLUS: 14000, NET_ZERO_READY: 36000 },
-  regionalMultiplier: { METRO: 1, REGIONAL: 1.06, REMOTE: 1.14 },
-  facadeMultiplier: { STANDARD: 1, ARCHITECTURAL: 1.08, LUXURY: 1.16 },
-  qualityAssurancePercentDefault: 0.02,
-  permitCostDefault: 15000
+const defaultSettings = {
+  specCostPerSqm: { STANDARD: 1850, MID: 2400, PREMIUM: 3200, ULTRA: 4200 },
+  siteMultiplier: { FLAT: 1, MODERATE: 1.08, COMPLEX: 1.18 },
+  featureCosts: { floorsMultiplier: { '1': 1, '2': 1.06, '3': 1.12 } },
+  addOnDefaults: [
+    { name: 'POOL', type: 'flat', value: 65000 },
+    { name: 'HIGH_CEILINGS', type: 'multiplier', value: 1.05 },
+    { name: 'UPGRADED_WINDOWS', type: 'flat', value: 18000 },
+    { name: 'SMART_HOME', type: 'flat', value: 22000 },
+    { name: 'LANDSCAPING_PREMIUM', type: 'flat', value: 30000 }
+  ]
 };
 
 export async function GET() {
@@ -20,31 +20,11 @@ export async function GET() {
   const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } });
   if (!settings) return NextResponse.json({ error: 'Missing settings' }, { status: 404 });
 
-  const featureCosts = {
-    ...defaultFeatureCosts,
-    ...(settings.featureCosts as any),
-    sustainabilityFlatCosts: {
-      ...defaultFeatureCosts.sustainabilityFlatCosts,
-      ...((settings.featureCosts as any)?.sustainabilityFlatCosts ?? {})
-    },
-    energyPackageCosts: {
-      ...defaultFeatureCosts.energyPackageCosts,
-      ...((settings.featureCosts as any)?.energyPackageCosts ?? {})
-    },
-    regionalMultiplier: {
-      ...defaultFeatureCosts.regionalMultiplier,
-      ...((settings.featureCosts as any)?.regionalMultiplier ?? {})
-    },
-    facadeMultiplier: {
-      ...defaultFeatureCosts.facadeMultiplier,
-      ...((settings.featureCosts as any)?.facadeMultiplier ?? {})
-    }
-  };
-
   return NextResponse.json({
-    specCostPerSqm: settings.specCostPerSqm,
-    siteMultiplier: settings.siteMultiplier,
-    featureCosts,
+    specCostPerSqm: { ...defaultSettings.specCostPerSqm, ...(settings.specCostPerSqm as any) },
+    siteMultiplier: { ...defaultSettings.siteMultiplier, ...(settings.siteMultiplier as any) },
+    featureCosts: { ...defaultSettings.featureCosts, ...(settings.featureCosts as any) },
+    addOnDefaults: ((settings.addOnDefaults as any[])?.length ? settings.addOnDefaults : defaultSettings.addOnDefaults) as any,
     categoryPercents: (settings.categoryPercents as any).raw
   });
 }

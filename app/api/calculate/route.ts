@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } });
   if (!settings) return NextResponse.json({ error: 'Settings not configured' }, { status: 500 });
 
-  const estimate = calculateEstimate(parsed.data, {
+  const estimate = calculateEstimate(parsed.data as any, {
     specCostPerSqm: settings.specCostPerSqm as any,
     siteMultiplier: settings.siteMultiplier as any,
     categoryPercents: (settings.categoryPercents as any).raw,

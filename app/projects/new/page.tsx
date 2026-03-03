@@ -6,36 +6,25 @@ export default async function NewProjectPage() {
   await requireAuth(['ADMIN', 'ESTIMATOR']);
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
-      <p className="mb-1 text-xs uppercase tracking-[0.2em] text-zinc-500">Estimator Workspace</p>
-      <h1 className="mb-4 text-3xl font-semibold">Create Project</h1>
+    <div className="space-y-4">
+      <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Estimator Workspace</p>
+      <h1 className="text-3xl font-semibold">Create Project</h1>
       <ProjectForm
         initial={{
           projectName: '',
+          clientName: '',
+          address: '',
           buildType: 'CUSTOM_HOME',
           totalSqm: 250,
           specLevel: 'MID',
           siteComplexity: 'FLAT',
+          status: 'DRAFT',
+          floors: 2,
           addOns: [],
           prelimPercent: 0.1,
           marginPercent: 0.2,
-          bedroomCount: 4,
-          bathroomCount: 2,
-          garageSpaces: 2,
-          storeys: 1,
-          regionType: 'METRO',
-          facadeType: 'STANDARD',
-          sustainabilityLevel: 'NONE',
-          energyPackage: 'STANDARD',
-          timelineMonths: 12,
           contingencyPercent: 0.05,
-          escalationPercent: 0,
-          qualityAssurancePercent: 0.02,
-          discountPercent: 0,
-          includeGst: false,
-          gstPercent: 0.1,
-          permitCost: 15000,
-          demolitionCost: 0
+          notes: ''
         }}
         onSave={async (data) => {
           'use server';
