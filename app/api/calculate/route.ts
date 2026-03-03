@@ -3,14 +3,6 @@ import { calculateEstimate } from '@/lib/engine/calculate';
 import { projectSchema, settingsSchema } from '@/lib/validation/schemas';
 import { prisma } from '@/lib/db/prisma';
 
-function toEngineInput(parsed: ReturnType<typeof projectSchema.parse>) {
-  return {
-    ...parsed,
-    clientName: parsed.clientName ?? undefined,
-    address: parsed.address ?? undefined
-  };
-}
-
 export async function POST(req: Request) {
   const json = await req.json();
   const parsed = projectSchema.safeParse(json);
@@ -36,7 +28,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Settings payload is invalid. Please review admin settings.' }, { status: 500 });
   }
 
-  const estimate = calculateEstimate(toEngineInput(parsed.data), {
+  const estimate = calculateEstimate(parsed.data, {
     specCostPerSqm: specCostPerSqmParsed.data,
     siteMultiplier: siteMultiplierParsed.data,
     categoryPercents: categoryPercentsParsed.data,
