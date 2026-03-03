@@ -21,7 +21,20 @@ export const projectSchema = z.object({
   bedroomCount: z.number().int().min(1).max(12).default(4),
   bathroomCount: z.number().int().min(1).max(8).default(2),
   garageSpaces: z.number().int().min(0).max(6).default(2),
-  storeys: z.number().int().min(1).max(3).default(1)
+  storeys: z.number().int().min(1).max(3).default(1),
+  regionType: z.enum(['METRO', 'REGIONAL', 'REMOTE']).default('METRO'),
+  facadeType: z.enum(['STANDARD', 'ARCHITECTURAL', 'LUXURY']).default('STANDARD'),
+  sustainabilityLevel: z.enum(['NONE', 'SILVER', 'GOLD']).default('NONE'),
+  energyPackage: z.enum(['STANDARD', 'BASIX_PLUS', 'NET_ZERO_READY']).default('STANDARD'),
+  timelineMonths: z.number().int().min(1).max(48).default(12),
+  contingencyPercent: z.number().min(0).max(1).default(0.05),
+  escalationPercent: z.number().min(0).max(1).default(0),
+  qualityAssurancePercent: z.number().min(0).max(1).default(0.02),
+  discountPercent: z.number().min(0).max(0.5).default(0),
+  includeGst: z.boolean().default(false),
+  gstPercent: z.number().min(0).max(1).default(0.1),
+  permitCost: z.number().nonnegative().default(15000),
+  demolitionCost: z.number().nonnegative().default(0)
 });
 
 export const settingsSchema = z.object({
@@ -39,7 +52,29 @@ export const settingsSchema = z.object({
     bedroomCost: z.number().nonnegative(),
     bathroomCost: z.number().nonnegative(),
     garageSpaceCost: z.number().nonnegative(),
-    doubleStoreyMultiplier: z.number().positive()
+    doubleStoreyMultiplier: z.number().positive(),
+    sustainabilityFlatCosts: z.object({
+      NONE: z.number().nonnegative(),
+      SILVER: z.number().nonnegative(),
+      GOLD: z.number().nonnegative()
+    }),
+    energyPackageCosts: z.object({
+      STANDARD: z.number().nonnegative(),
+      BASIX_PLUS: z.number().nonnegative(),
+      NET_ZERO_READY: z.number().nonnegative()
+    }),
+    regionalMultiplier: z.object({
+      METRO: z.number().positive(),
+      REGIONAL: z.number().positive(),
+      REMOTE: z.number().positive()
+    }),
+    facadeMultiplier: z.object({
+      STANDARD: z.number().positive(),
+      ARCHITECTURAL: z.number().positive(),
+      LUXURY: z.number().positive()
+    }),
+    qualityAssurancePercentDefault: z.number().min(0).max(1),
+    permitCostDefault: z.number().nonnegative()
   }),
   categoryPercents: z.object({
     'Slab & Structure': z.number().nonnegative(),

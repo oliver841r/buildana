@@ -129,4 +129,42 @@ describe('calculateEstimate', () => {
     expect(res.margin).toBe(22000);
     expect(res.total).toBe(132000);
   });
+
+  it('supports advanced commercial controls', () => {
+    const res = calculateEstimate(
+      {
+        projectName: 'A',
+        buildType: 'CUSTOM_HOME',
+        totalSqm: 100,
+        specLevel: 'STANDARD',
+        siteComplexity: 'FLAT',
+        addOns: [],
+        prelimPercent: 0.1,
+        marginPercent: 0.2,
+        contingencyPercent: 0.05,
+        escalationPercent: 0.03,
+        qualityAssurancePercent: 0.02,
+        timelineMonths: 12,
+        discountPercent: 0.05,
+        includeGst: true,
+        gstPercent: 0.1,
+        permitCost: 10000,
+        regionType: 'REGIONAL',
+        facadeType: 'ARCHITECTURAL',
+        sustainabilityLevel: 'SILVER',
+        energyPackage: 'BASIX_PLUS',
+        bedroomCount: 0,
+        bathroomCount: 0,
+        garageSpaces: 0,
+        storeys: 1
+      },
+      settings as any
+    );
+
+    expect(res.gstCost).toBeGreaterThan(0);
+    expect(res.discountAmount).toBeGreaterThan(0);
+    expect(res.contingencyCost).toBeGreaterThan(0);
+    expect(res.total).toBeGreaterThan(res.subtotal);
+  });
+
 });

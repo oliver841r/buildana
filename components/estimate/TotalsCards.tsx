@@ -5,18 +5,30 @@ export function TotalsCards({
   total,
   subtotal,
   prelim,
-  margin
+  margin,
+  gst = 0,
+  discount = 0,
+  escalation = 0,
+  contingency = 0
 }: {
   total: number;
   subtotal: number;
   prelim: number;
   margin: number;
+  gst?: number;
+  discount?: number;
+  escalation?: number;
+  contingency?: number;
 }) {
   const items = [
     { label: 'Total Estimate', value: total },
     { label: 'Subtotal', value: subtotal },
     { label: 'Preliminaries', value: prelim },
-    { label: 'Margin', value: margin }
+    { label: 'Margin', value: margin },
+    { label: 'GST', value: gst },
+    { label: 'Discount', value: -discount },
+    { label: 'Escalation', value: escalation },
+    { label: 'Contingency', value: contingency }
   ];
 
   return (

@@ -10,6 +10,8 @@ export default async function DashboardPage() {
   const projects = await listProjects();
   const totalPipeline = projects.reduce((acc, project) => acc + ((project.totals as any).total ?? 0), 0);
   const averageProject = projects.length ? totalPipeline / projects.length : 0;
+  const atRiskProjects = projects.filter((project) => ((project.totals as any)?.warnings ?? []).length > 0).length;
+  const gstExposure = projects.reduce((acc, project) => acc + ((project.totals as any)?.gstCost ?? 0), 0);
 
   return (
     <div className="mx-auto max-w-6xl space-y-5 p-6">
@@ -24,11 +26,13 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Card><p className="text-xs text-zinc-500">Projects</p><p className="text-2xl font-bold">{projects.length}</p></Card>
         <Card><p className="text-xs text-zinc-500">Total Pipeline</p><p className="text-2xl font-bold">{formatAud(totalPipeline)}</p></Card>
         <Card><p className="text-xs text-zinc-500">Average Project</p><p className="text-2xl font-bold">{formatAud(averageProject)}</p></Card>
         <Card><p className="text-xs text-zinc-500">Last Updated</p><p className="text-2xl font-bold">{projects[0]?.updatedAt.toLocaleDateString() ?? '-'}</p></Card>
+        <Card><p className="text-xs text-zinc-500">At-Risk Projects</p><p className="text-2xl font-bold">{atRiskProjects}</p></Card>
+        <Card><p className="text-xs text-zinc-500">GST Exposure</p><p className="text-2xl font-bold">{formatAud(gstExposure)}</p></Card>
       </div>
 
       <Card className="p-0 overflow-hidden">

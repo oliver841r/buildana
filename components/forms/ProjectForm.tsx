@@ -60,78 +60,55 @@ export function ProjectForm({
 
   return (
     <div className="space-y-6">
-      <Card className="bg-gradient-to-br from-white via-white to-amber-50/60 p-6">
+      <Card className="border-zinc-200 bg-gradient-to-br from-white via-white to-amber-50/60 p-6 shadow-lg shadow-zinc-200/40">
         <form onSubmit={submit} className="space-y-6">
           <div>
             <p className={sectionTitle}>Project Basics</p>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-sm font-medium">Project Name</label>
-                <Input {...form.register('projectName')} placeholder="e.g. Paddington Residence" />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Total sqm</label>
-                <Input type="number" step="0.01" {...form.register('totalSqm', { valueAsNumber: true })} />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Build Type</label>
-                <Select {...form.register('buildType')}>
-                  <option value="DUPLEX">Duplex</option>
-                  <option value="CUSTOM_HOME">Custom Home</option>
-                </Select>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Spec Level</label>
-                <Select {...form.register('specLevel')}>
-                  <option value="STANDARD">Standard</option>
-                  <option value="MID">Mid</option>
-                  <option value="PREMIUM">Premium</option>
-                </Select>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Site Complexity</label>
-                <Select {...form.register('siteComplexity')}>
-                  <option value="FLAT">Flat</option>
-                  <option value="MODERATE">Moderate</option>
-                  <option value="COMPLEX">Complex</option>
-                </Select>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Storeys</label>
-                <Input type="number" {...form.register('storeys', { valueAsNumber: true })} />
-              </div>
+              <div><label className="mb-1 block text-sm font-medium">Project Name</label><Input {...form.register('projectName')} placeholder="e.g. Paddington Residence" /></div>
+              <div><label className="mb-1 block text-sm font-medium">Total sqm</label><Input type="number" step="0.01" {...form.register('totalSqm', { valueAsNumber: true })} /></div>
+              <div><label className="mb-1 block text-sm font-medium">Build Type</label><Select {...form.register('buildType')}><option value="DUPLEX">Duplex</option><option value="CUSTOM_HOME">Custom Home</option></Select></div>
+              <div><label className="mb-1 block text-sm font-medium">Spec Level</label><Select {...form.register('specLevel')}><option value="STANDARD">Standard</option><option value="MID">Mid</option><option value="PREMIUM">Premium</option></Select></div>
+              <div><label className="mb-1 block text-sm font-medium">Site Complexity</label><Select {...form.register('siteComplexity')}><option value="FLAT">Flat</option><option value="MODERATE">Moderate</option><option value="COMPLEX">Complex</option></Select></div>
+              <div><label className="mb-1 block text-sm font-medium">Storeys</label><Input type="number" {...form.register('storeys', { valueAsNumber: true })} /></div>
             </div>
           </div>
 
           <div>
             <p className={sectionTitle}>Room Configuration</p>
             <div className="mt-3 grid gap-3 md:grid-cols-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium">Bedrooms</label>
-                <Input type="number" {...form.register('bedroomCount', { valueAsNumber: true })} />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Bathrooms</label>
-                <Input type="number" {...form.register('bathroomCount', { valueAsNumber: true })} />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Garage Spaces</label>
-                <Input type="number" {...form.register('garageSpaces', { valueAsNumber: true })} />
-              </div>
+              <div><label className="mb-1 block text-sm font-medium">Bedrooms</label><Input type="number" {...form.register('bedroomCount', { valueAsNumber: true })} /></div>
+              <div><label className="mb-1 block text-sm font-medium">Bathrooms</label><Input type="number" {...form.register('bathroomCount', { valueAsNumber: true })} /></div>
+              <div><label className="mb-1 block text-sm font-medium">Garage Spaces</label><Input type="number" {...form.register('garageSpaces', { valueAsNumber: true })} /></div>
+            </div>
+          </div>
+
+          <div>
+            <p className={sectionTitle}>Advanced Cost Drivers</p>
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              <div><label className="mb-1 block text-sm font-medium">Region</label><Select {...form.register('regionType')}><option value="METRO">Metro</option><option value="REGIONAL">Regional</option><option value="REMOTE">Remote</option></Select></div>
+              <div><label className="mb-1 block text-sm font-medium">Facade Type</label><Select {...form.register('facadeType')}><option value="STANDARD">Standard</option><option value="ARCHITECTURAL">Architectural</option><option value="LUXURY">Luxury</option></Select></div>
+              <div><label className="mb-1 block text-sm font-medium">Sustainability</label><Select {...form.register('sustainabilityLevel')}><option value="NONE">None</option><option value="SILVER">Silver</option><option value="GOLD">Gold</option></Select></div>
+              <div><label className="mb-1 block text-sm font-medium">Energy Package</label><Select {...form.register('energyPackage')}><option value="STANDARD">Standard</option><option value="BASIX_PLUS">BASIX Plus</option><option value="NET_ZERO_READY">Net Zero Ready</option></Select></div>
+              <div><label className="mb-1 block text-sm font-medium">Timeline (months)</label><Input type="number" {...form.register('timelineMonths', { valueAsNumber: true })} /></div>
+              <div><label className="mb-1 block text-sm font-medium">Permit Cost</label><Input type="number" step="100" {...form.register('permitCost', { valueAsNumber: true })} /></div>
+              <div><label className="mb-1 block text-sm font-medium">Demolition Cost</label><Input type="number" step="100" {...form.register('demolitionCost', { valueAsNumber: true })} /></div>
+              <div><label className="mb-1 block text-sm font-medium">Escalation % (annual)</label><Input type="number" step="0.01" {...form.register('escalationPercent', { valueAsNumber: true })} /></div>
+              <div><label className="mb-1 block text-sm font-medium">Contingency %</label><Input type="number" step="0.01" {...form.register('contingencyPercent', { valueAsNumber: true })} /></div>
+              <div><label className="mb-1 block text-sm font-medium">QA %</label><Input type="number" step="0.01" {...form.register('qualityAssurancePercent', { valueAsNumber: true })} /></div>
+              <div><label className="mb-1 block text-sm font-medium">Discount %</label><Input type="number" step="0.01" {...form.register('discountPercent', { valueAsNumber: true })} /></div>
+              <div><label className="mb-1 block text-sm font-medium">GST %</label><Input type="number" step="0.01" {...form.register('gstPercent', { valueAsNumber: true })} /></div>
+              <label className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium">
+                <input type="checkbox" {...form.register('includeGst')} /> Include GST in total
+              </label>
             </div>
           </div>
 
           <div>
             <p className={sectionTitle}>Commercial Controls</p>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-sm font-medium">Prelim %</label>
-                <Input type="number" step="0.01" {...form.register('prelimPercent', { valueAsNumber: true })} />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Margin %</label>
-                <Input type="number" step="0.01" {...form.register('marginPercent', { valueAsNumber: true })} />
-              </div>
+              <div><label className="mb-1 block text-sm font-medium">Prelim %</label><Input type="number" step="0.01" {...form.register('prelimPercent', { valueAsNumber: true })} /></div>
+              <div><label className="mb-1 block text-sm font-medium">Margin %</label><Input type="number" step="0.01" {...form.register('marginPercent', { valueAsNumber: true })} /></div>
             </div>
           </div>
 
@@ -142,6 +119,7 @@ export function ProjectForm({
                 <label key={addOn.name} className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white p-3 shadow-sm">
                   <input
                     type="checkbox"
+                    checked={(form.watch('addOns') ?? []).some((x) => x.name === addOn.name)}
                     onChange={(e) => {
                       const current = form.getValues('addOns') ?? [];
                       if (e.target.checked) {
@@ -161,7 +139,7 @@ export function ProjectForm({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={pending}>Save Project</Button>
+            <Button type="submit" disabled={pending}>{pending ? 'Saving...' : 'Save Project'}</Button>
             {onExport ? (
               <Button
                 type="button"
@@ -185,7 +163,16 @@ export function ProjectForm({
       {calc?.warnings ? <WarningsBanner warnings={calc.warnings} /> : null}
       {calc ? (
         <>
-          <TotalsCards total={calc.total} subtotal={calc.subtotal} prelim={calc.prelimCost} margin={calc.margin} />
+          <TotalsCards
+            total={calc.total}
+            subtotal={calc.subtotal}
+            prelim={calc.prelimCost}
+            margin={calc.margin}
+            gst={calc.gstCost}
+            discount={calc.discountAmount}
+            escalation={calc.escalationCost}
+            contingency={calc.contingencyCost}
+          />
           <BreakdownTable rows={calc.categoryBreakdown ?? []} />
         </>
       ) : null}

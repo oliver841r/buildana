@@ -22,7 +22,20 @@ export default async function NewProjectPage() {
           bedroomCount: 4,
           bathroomCount: 2,
           garageSpaces: 2,
-          storeys: 1
+          storeys: 1,
+          regionType: 'METRO',
+          facadeType: 'STANDARD',
+          sustainabilityLevel: 'NONE',
+          energyPackage: 'STANDARD',
+          timelineMonths: 12,
+          contingencyPercent: 0.05,
+          escalationPercent: 0,
+          qualityAssurancePercent: 0.02,
+          discountPercent: 0,
+          includeGst: false,
+          gstPercent: 0.1,
+          permitCost: 15000,
+          demolitionCost: 0
         }}
         onSave={async (data) => {
           'use server';
