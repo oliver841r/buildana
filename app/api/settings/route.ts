@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { requireAuth } from '@/lib/auth/options';
-import { SettingsInput } from '@/lib/validation/schemas';
+import { settingsSchema, SettingsInput } from '@/lib/validation/schemas';
 
 const defaultSettings: SettingsInput = {
   specCostPerSqm: { STANDARD: 1850, MID: 2400, PREMIUM: 3200, ULTRA: 4200 },
@@ -36,19 +36,36 @@ export async function GET() {
   const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } });
   if (!settings) return NextResponse.json({ error: 'Missing settings' }, { status: 404 });
 
-  const dbSettings = settings as {
-    specCostPerSqm: SettingsInput['specCostPerSqm'];
-    siteMultiplier: SettingsInput['siteMultiplier'];
-    featureCosts: SettingsInput['featureCosts'];
-    addOnDefaults: SettingsInput['addOnDefaults'];
-    categoryPercents: { raw: SettingsInput['categoryPercents'] };
-  };
+  const specCostPerSqm = settingsSchema.shape.specCostPerSqm.safeParse(settings.specCostPerSqm).success
+    ? settingsSchema.shape.specCostPerSqm.parse(settings.specCostPerSqm)
+    : defaultSettings.specCostPerSqm;
+
+  const siteMultiplier = settingsSchema.shape.siteMultiplier.safeParse(settings.siteMultiplier).success
+    ? settingsSchema.shape.siteMultiplier.parse(settings.siteMultiplier)
+    : defaultSettings.siteMultiplier;
+
+  const featureCosts = settingsSchema.shape.featureCosts.safeParse(settings.featureCosts).success
+    ? settingsSchema.shape.featureCosts.parse(settings.featureCosts)
+    : defaultSettings.featureCosts;
+
+  const addOnDefaults = settingsSchema.shape.addOnDefaults.safeParse(settings.addOnDefaults).success
+    ? settingsSchema.shape.addOnDefaults.parse(settings.addOnDefaults)
+    : defaultSettings.addOnDefaults;
+
+  const rawCategoryPercents =
+    typeof settings.categoryPercents === 'object' && settings.categoryPercents !== null && 'raw' in settings.categoryPercents
+      ? (settings.categoryPercents as { raw: unknown }).raw
+      : settings.categoryPercents;
+
+  const categoryPercents = settingsSchema.shape.categoryPercents.safeParse(rawCategoryPercents).success
+    ? settingsSchema.shape.categoryPercents.parse(rawCategoryPercents)
+    : defaultSettings.categoryPercents;
 
   return NextResponse.json({
-    specCostPerSqm: { ...defaultSettings.specCostPerSqm, ...dbSettings.specCostPerSqm },
-    siteMultiplier: { ...defaultSettings.siteMultiplier, ...dbSettings.siteMultiplier },
-    featureCosts: { ...defaultSettings.featureCosts, ...dbSettings.featureCosts },
-    addOnDefaults: dbSettings.addOnDefaults?.length ? dbSettings.addOnDefaults : defaultSettings.addOnDefaults,
-    categoryPercents: dbSettings.categoryPercents.raw
+    specCostPerSqm,
+    siteMultiplier,
+    featureCosts,
+    addOnDefaults,
+    categoryPercents
   });
 }

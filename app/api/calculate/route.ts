@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { calculateEstimate } from '@/lib/engine/calculate';
-import { projectSchema, SettingsInput } from '@/lib/validation/schemas';
+import { projectSchema, settingsSchema } from '@/lib/validation/schemas';
 import { prisma } from '@/lib/db/prisma';
 
 export async function POST(req: Request) {
@@ -14,18 +14,25 @@ export async function POST(req: Request) {
   const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } });
   if (!settings) return NextResponse.json({ error: 'Settings not configured' }, { status: 500 });
 
-  const dbSettings = settings as {
-    specCostPerSqm: SettingsInput['specCostPerSqm'];
-    siteMultiplier: SettingsInput['siteMultiplier'];
-    featureCosts: SettingsInput['featureCosts'];
-    categoryPercents: { raw: SettingsInput['categoryPercents'] };
-  };
+  const rawCategoryPercents =
+    typeof settings.categoryPercents === 'object' && settings.categoryPercents !== null && 'raw' in settings.categoryPercents
+      ? (settings.categoryPercents as { raw: unknown }).raw
+      : settings.categoryPercents;
+
+  const specCostPerSqmParsed = settingsSchema.shape.specCostPerSqm.safeParse(settings.specCostPerSqm);
+  const siteMultiplierParsed = settingsSchema.shape.siteMultiplier.safeParse(settings.siteMultiplier);
+  const featureCostsParsed = settingsSchema.shape.featureCosts.safeParse(settings.featureCosts);
+  const categoryPercentsParsed = settingsSchema.shape.categoryPercents.safeParse(rawCategoryPercents);
+
+  if (!specCostPerSqmParsed.success || !siteMultiplierParsed.success || !featureCostsParsed.success || !categoryPercentsParsed.success) {
+    return NextResponse.json({ error: 'Settings payload is invalid. Please review admin settings.' }, { status: 500 });
+  }
 
   const estimate = calculateEstimate(parsed.data, {
-    specCostPerSqm: dbSettings.specCostPerSqm,
-    siteMultiplier: dbSettings.siteMultiplier,
-    categoryPercents: dbSettings.categoryPercents.raw,
-    featureCosts: dbSettings.featureCosts
+    specCostPerSqm: specCostPerSqmParsed.data,
+    siteMultiplier: siteMultiplierParsed.data,
+    categoryPercents: categoryPercentsParsed.data,
+    featureCosts: featureCostsParsed.data
   });
 
   return NextResponse.json(estimate);
